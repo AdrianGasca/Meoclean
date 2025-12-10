@@ -1,108 +1,174 @@
 // ===============================================
-// CORE - Config, State, Utils, Auth, Nav
+// CORE / STATE / HELPERS / API
 // ===============================================
-// ===== CONFIG =====
-const API = 'https://chat.adrian-261.workers.dev';
+
+const API = window.CM_API || ''; // Base API (Worker o servidor)
+
 const TBL = {
-  usuarios: 'cm_usuarios',
   servicios: 'cm_servicios',
+  inventario: 'cm_inventario',
+  kits: 'cm_kits',
+  propiedades: 'cm_propiedades',
+  propietarios: 'cm_propietarios',
+  gastos: 'cm_gastos_fijos',
+  mantenimiento: 'cm_mantenimiento',
+  extras: 'cm_extras',
   reservas: 'cm_reservas',
   credenciales: 'cm_credenciales',
   propertyMapping: 'cm_property_mapping',
-  inventario: 'inventario',
-  kits: 'kits',
-  propietarios: 'propietarios',
-  gastos: 'gastos_fijos',
-  mantenimiento: 'mantenimiento',
-  extras: 'limpieza_extras',
-  propiedades: 'propiedades_config',
   empleados: 'empleados_cleanmanager',
-  alertas: 'alertas_config'
 };
 
-// Información de plataformas
-const PLATFORMS = {
-  avaibook: { name: 'Avaibook', fields: ['apikey', 'userid'], help: 'Obtén tu API Key desde el panel de Avaibook en Configuración → API' },
-  icnea: { name: 'Icnea', fields: ['apikey', 'userid'], help: 'Tu API Key e ID de propietario los encuentras en Icnea → Configuración → API' },
-  hostify: { name: 'Hostify', fields: ['apikey', 'secret'], help: 'Genera tu API Key desde Hostify → Settings → API' },
-  guesty: { name: 'Guesty', fields: ['apikey', 'secret'], help: 'Accede a tu API Key en Guesty → Marketplace → API' },
-  smoobu: { name: 'Smoobu', fields: ['apikey'], help: 'Encuentra tu API Key en Smoobu → Configuración → API' },
-  lodgify: { name: 'Lodgify', fields: ['apikey'], help: 'Tu API Key está en Lodgify → Configuración → Integraciones → API' }
-};
-// ===== STATE =====
+// Estado global
 const S = {
-  user: null,
   clienteEmail: null,
+  user: null,
   servicios: [],
   inventario: [],
   kits: [],
+  propiedades: [],
   propietarios: [],
   gastos: [],
   mantenimiento: [],
   extras: [],
-  propiedades: [],
   empleados: [],
-  alertas: null,
   reservas: [],
   credenciales: [],
-  propertyMappings: []
+  propertyMappings: [],
+  stock: [], // alias de inventario
 };
 
-// Variables globales
-let currentConsumosMes = new Date().toISOString().slice(0, 7);
-let currentLimpiezasMes = new Date().toISOString().slice(0, 7);
-const stockForecasts = new Map();
+// Helper DOM
+const $ = (sel) => document.querySelector(sel);
 
-// ===== INIT =====
-document.addEventListener('DOMContentLoaded', () => {
-  const saved = localStorage.getItem('cm_user');
-  if (saved) {
-    S.user = JSON.parse(saved);
-    S.clienteEmail = S.user.cliente_email;
-    initApp();
-  } else {
-    showLogin();
-  }
-});
+// Helper seguro para clave YYYY-MM (evita problemas de zona horaria/UTC)
+const getMonthKey = (d = new Date()) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
 
-function showLogin() {
-  hide('loading-overlay');
-  show('login-view');
-  hide('app-view');
+// Meses actuales (evitamos toISOString)
+let currentConsumosMes = getMonthKey();
+let currentLimpiezasMes = getMonthKey();
+
+// -----------------------------------------------
+// Helpers UI
+// -----------------------------------------------
+function toast(msg, type = 'info') {
+  console.log(`[${type}]`, msg);
+  const el = document.getElementById('toast');
+  if (!el) return;
+  el.textContent = msg;
+  el.className = `toast ${type}`;
+  el.style.display = 'block';
+  clearTimeout(window.__toastTimer);
+  window.__toastTimer = setTimeout(() => (el.style.display = 'none'), 2200);
 }
 
-async function initApp() {
-  show('loading-overlay');
-  hide('login-view');
+function formatMoney(n) {
+  const v = Number(n || 0);
+  return v.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' });
+}
+
+function formatDate(d) {
+  if (!d) return '-';
+  const dt = new Date(d);
+  if (isNaN(dt.getTime())) return '-';
+  return dt.toLocaleDateString('es-ES');
+}
+
+// -----------------------------------------------
+// API fetch wrappers
+// -----------------------------------------------
+async function apiGet(url) {
+  const res = await fetch(url, { method: 'GET' });
+  if (!res.ok) throw new Error(`GET ${url} -> ${res.status}`);
+  return res.json();
+}
+
+async function apiPost(url, body) {
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body || {}),
+  });
+  if (!res.ok) throw new Error(`POST ${url} -> ${res.status}`);
+  return res.json();
+}
+
+async function apiPatch(url, body) {
+  const res = await fetch(url, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body || {}),
+  });
+  if (!res.ok) throw new Error(`PATCH ${url} -> ${res.status}`);
+  return res.json();
+}
+
+async function apiDelete(url) {
+  const res = await fetch(url, { method: 'DELETE' });
+  if (!res.ok) throw new Error(`DELETE ${url} -> ${res.status}`);
+  return res.json();
+}
+
+// -----------------------------------------------
+// CRUD helpers (compatibles con tu Worker)
+// -----------------------------------------------
+async function load(tbl, field = 'cliente_email') {
+  if (!API) return [];
+  const ce = encodeURIComponent(S.clienteEmail || '');
+  const f = encodeURIComponent(field);
+  const url = `${API}/supa/list/${tbl}?${f}=eq.${ce}`;
   try {
-    await loadAll();
-    hide('loading-overlay');
-    show('app-view');
-    
-    $('#account-name').textContent = S.user.empresa || S.clienteEmail;
-    $('#user-name').textContent = S.user.nombre || 'Usuario';
-    $('#user-avatar').textContent = (S.user.nombre || 'U').substring(0, 2).toUpperCase();
-    
-    initFilters();
-    renderDashboard();
+    const data = await apiGet(url);
+    return Array.isArray(data) ? data : [];
   } catch (e) {
-    console.error(e);
-    toast('Error al cargar', 'error');
-    hide('loading-overlay');
-    show('app-view');
+    console.warn('load error', tbl, field, e);
+    return [];
   }
 }
 
+async function create(tbl, data) {
+  if (!API) throw new Error('API no configurada');
+  return apiPost(`${API}/supa/create/${tbl}`, data);
+}
+
+async function update(tbl, id, data) {
+  if (!API) throw new Error('API no configurada');
+  return apiPost(`${API}/supa/update/${tbl}/${id}`, data);
+}
+
+async function patch(tbl, query, data) {
+  if (!API) throw new Error('API no configurada');
+  return apiPatch(`${API}/supa/patch/${tbl}${query}`, data);
+}
+
+async function remove(tbl, id) {
+  if (!API) throw new Error('API no configurada');
+  return apiDelete(`${API}/supa/delete/${tbl}/${id}`);
+}
+
+// -----------------------------------------------
+// Carga inicial
+// -----------------------------------------------
 async function loadAll() {
-  const ce = encodeURIComponent(S.clienteEmail);
-  const load = async (t, f = 'cliente_email') => {
-    try {
-      const r = await fetch(`${API}/supa/list/${t}?${f}=eq.${ce}`);
-      return r.ok ? await r.json() : [];
-    } catch { return []; }
-  };
-  
-  [S.servicios, S.inventario, S.kits, S.propietarios, S.gastos, S.mantenimiento, S.extras, S.propiedades, S.empleados, S.reservas, S.credenciales, S.propertyMappings] = await Promise.all([
+  const ce = S.clienteEmail;
+  if (!ce) return;
+
+  // Propiedades desde dos fuentes (compat)
+  const [
+    servicios,
+    inventario,
+    kits,
+    propietarios,
+    gastos,
+    mantenimiento,
+    extras,
+    reservas,
+    credenciales,
+    propertyMappings,
+    empleadosCliente,
+    empleadosHost
+  ] = await Promise.all([
     load(TBL.servicios),
     load(TBL.inventario),
     load(TBL.kits),
@@ -110,325 +176,165 @@ async function loadAll() {
     load(TBL.gastos),
     load(TBL.mantenimiento),
     load(TBL.extras),
-    load(TBL.propiedades),
-    load(TBL.empleados, 'email_host'),
     load(TBL.reservas),
     load(TBL.credenciales),
-    load(TBL.propertyMapping)
+    load(TBL.propertyMapping),
+    load(TBL.empleados, 'cliente_email'),
+    load(TBL.empleados, 'email_host')
   ]);
-  
-  const alertas = await load(TBL.alertas);
-  S.alertas = alertas[0] || null;
-  
-  // Alias para compatibilidad
+
+  S.servicios = servicios || [];
+  S.inventario = inventario || [];
+  S.kits = kits || [];
+  S.propietarios = propietarios || [];
+  S.gastos = gastos || [];
+  S.mantenimiento = mantenimiento || [];
+  S.extras = extras || [];
+  S.reservas = reservas || [];
+  S.credenciales = credenciales || [];
+  S.propertyMappings = propertyMappings || [];
+
+  // Unir empleados por compatibilidad de esquema
+  const empMap = new Map();
+  [...(empleadosCliente || []), ...(empleadosHost || [])].forEach(e => {
+    if (e && e.id != null && !empMap.has(e.id)) empMap.set(e.id, e);
+  });
+  S.empleados = Array.from(empMap.values());
+
+  // Alias de stock
   S.stock = S.inventario;
-  
-  // ✅ Cargar propiedades de integración y combinar (sin romper lo anterior)
-  try {
-    const propIntegradas = await load('v_propiedades');
-    if (propIntegradas && propIntegradas.length > 0) {
-      // Marcar las existentes como manuales
-      S.propiedades = S.propiedades.map(p => ({ ...p, source: 'manual' }));
-      
-      // Añadir las de integración que no existan ya
-      const existingNames = new Set(S.propiedades.map(p => (p.propiedad_nombre || '').toLowerCase()));
-      propIntegradas.forEach(p => {
-        const nombre = (p.propiedad_nombre || '').toLowerCase();
-        if (!existingNames.has(nombre)) {
-          S.propiedades.push({
-            ...p,
-            source: 'integration',
-            external_id: p.avaibook_accommodation_id || p.external_id,
-            habitaciones: p.total_rooms || 1,
-            banos: p.total_bathrooms || 1
-          });
-        }
-      });
-    }
-  } catch (e) {
-    console.log('No se pudieron cargar propiedades de integración:', e);
+
+  // Construir lista de propiedades desde inventario/servicios si procede
+  if (typeof buildPropiedades === 'function') {
+    buildPropiedades();
+  }
+
+  // Render inicial
+  if (typeof renderAll === 'function') {
+    renderAll();
   }
 }
 
-// ===== AUTH =====
-function switchAuthTab(tab) {
-  $$('.login-tab').forEach(t => t.classList.remove('active'));
-  event.target.classList.add('active');
-  $('#form-login').style.display = tab === 'login' ? 'block' : 'none';
-  $('#form-register').style.display = tab === 'register' ? 'block' : 'none';
-  $('#auth-error').style.display = 'none';
-}
-
-async function doLogin() {
-  const email = $('#login-email').value.trim().toLowerCase();
-  const pass = $('#login-password').value;
-  if (!email || !pass) return showAuthError('Completa todos los campos');
-  
-  try {
-    const r = await fetch(`${API}/supa/list/${TBL.usuarios}?email=eq.${encodeURIComponent(email)}`);
-    const users = await r.json();
-    if (!users.length) return showAuthError('Usuario no encontrado');
-    
-    const user = users[0];
-    if (user.password_hash !== pass) return showAuthError('Contraseña incorrecta');
-    if (!user.activo) return showAuthError('Cuenta desactivada');
-    
-    S.user = user;
-    S.clienteEmail = user.cliente_email;
-    localStorage.setItem('cm_user', JSON.stringify(user));
-    
-    // Update last login
-    fetch(`${API}/supa/patch/${TBL.usuarios}?id=eq.${user.id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ last_login: new Date().toISOString() })
-    });
-    
-    await initApp();
-  } catch (e) {
-    showAuthError('Error de conexión');
-  }
-}
-
-async function doRegister() {
-  const empresa = $('#reg-empresa').value.trim();
-  const nombre = $('#reg-nombre').value.trim();
-  const email = $('#reg-email').value.trim().toLowerCase();
-  const telefono = $('#reg-telefono').value.trim();
-  const pass = $('#reg-password').value;
-  
-  if (!empresa || !nombre || !email || !pass) return showAuthError('Completa todos los campos');
-  if (pass.length < 6) return showAuthError('Contraseña mínimo 6 caracteres');
-  if (!email.includes('@')) return showAuthError('Email no válido');
-  
-  try {
-    console.log('Checking if email exists...');
-    const check = await fetch(`${API}/supa/list/${TBL.usuarios}?email=eq.${encodeURIComponent(email)}`);
-    const checkData = await check.json();
-    console.log('Check response:', checkData);
-    if (checkData.length) return showAuthError('Este email ya está registrado');
-    
-    const data = {
-      email,
-      password_hash: pass,
-      nombre,
-      empresa,
-      telefono,
-      cliente_email: email,
-      rol: 'admin',
-      activo: true,
-      plan: 'trial'
-    };
-    
-    console.log('Creating user with data:', data);
-    const r = await fetch(`${API}/supa/create/${TBL.usuarios}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    });
-    
-    console.log('Create response status:', r.status);
-    const responseText = await r.text();
-    console.log('Create response body:', responseText);
-    
-    let users;
-    try {
-      users = JSON.parse(responseText);
-    } catch (e) {
-      return showAuthError('Error del servidor: ' + responseText.substring(0, 100));
-    }
-    
-    if (!r.ok) {
-      return showAuthError('Error: ' + (users.message || users.error || JSON.stringify(users)));
-    }
-    
-    if (!users || !users.length) {
-      return showAuthError('No se pudo crear el usuario');
-    }
-    
-    S.user = users[0];
-    S.clienteEmail = email;
-    localStorage.setItem('cm_user', JSON.stringify(S.user));
-    
-    toast('¡Cuenta creada!');
-    await initApp();
-  } catch (e) {
-    console.error('Register error:', e);
-    showAuthError('Error: ' + e.message);
-  }
-}
-
-function showAuthError(msg) {
-  const el = $('#auth-error');
-  el.textContent = msg;
-  el.style.display = 'block';
-}
-
-function logout() {
-  if (confirm('¿Cerrar sesión?')) {
-    localStorage.removeItem('cm_user');
-    location.reload();
-  }
-}
-
-// ===== NAVIGATION =====
+// -----------------------------------------------
+// Navegación
+// -----------------------------------------------
 function navigate(view) {
-  $$('.nav-item').forEach(n => n.classList.remove('active'));
-  $(`.nav-item[data-view="${view}"]`)?.classList.add('active');
-  $$('.view').forEach(v => v.classList.remove('active'));
-  $(`#view-${view}`)?.classList.add('active');
-  
-  const titles = { dashboard:'Dashboard', servicios:'Servicios', reservas:'Reservas', stock:'Inventario', kits:'Kits', propiedades:'Propiedades', propietarios:'Propietarios', empleados:'Empleados', limpiezas:'Limpiezas', consumos:'Consumos', extras:'Extras', mantenimiento:'Mantenimiento', gastos:'Gastos Fijos', informes:'Informes', alertas:'Alertas', integraciones:'Integraciones' };
-  $('#page-title').textContent = titles[view] || '';
-  
-  renderView(view);
-  closeSidebar();
-}
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  const el = document.getElementById(`view-${view}`);
+  if (el) el.classList.add('active');
 
-function renderView(v) {
-  const renders = { dashboard:renderDashboard, servicios:renderServicios, reservas:renderReservas, stock:renderStock, kits:renderKits, propiedades:renderPropiedades, propietarios:renderPropietarios, empleados:renderEmpleados, limpiezas:renderLimpiezasMes, consumos:renderConsumos, extras:renderExtras, mantenimiento:renderMantenimiento, gastos:renderGastos, informes:renderInformes, alertas:renderAlertas, integraciones:renderIntegraciones, planificador:renderPlanificador };
-  renders[v]?.();
-}
+  const titles = {
+    dashboard:'Dashboard',
+    servicios:'Servicios',
+    reservas:'Reservas',
+    stock:'Inventario',
+    kits:'Kits',
+    propiedades:'Propiedades',
+    propietarios:'Propietarios',
+    empleados:'Empleados',
+    limpiezas:'Limpiezas',
+    consumos:'Consumos',
+    extras:'Extras',
+    mantenimiento:'Mantenimiento',
+    gastos:'Gastos Fijos',
+    informes:'Informes',
+    alertas:'Alertas',
+    integraciones:'Integraciones',
+    planificador:'Planificador'
+  };
+  const t = document.getElementById('page-title');
+  if (t) t.textContent = titles[view] || 'CleanManager';
 
-function toggleSidebar() {
-  $('#sidebar').classList.toggle('open');
-  $('#mobile-overlay').classList.toggle('open');
-}
-function closeSidebar() {
-  $('#sidebar').classList.remove('open');
-  $('#mobile-overlay').classList.remove('open');
-}
+  const renders = {
+    dashboard: window.renderDashboard,
+    servicios: window.renderServicios,
+    reservas: window.renderReservas,
+    stock: window.renderStock,
+    kits: window.renderKits,
+    propiedades: window.renderPropiedades,
+    propietarios: window.renderPropietarios,
+    empleados: window.renderEmpleados,
+    limpiezas: window.renderLimpiezasMes,
+    consumos: window.renderConsumos,
+    extras: window.renderExtras,
+    mantenimiento: window.renderMantenimiento,
+    gastos: window.renderGastos,
+    informes: window.renderInformes,
+    alertas: window.renderAlertas,
+    integraciones: window.renderIntegraciones,
+    planificador: window.renderPlanificador
+  };
 
-// ===== HELPERS =====
-const $ = sel => document.querySelector(sel);
-const $$ = sel => document.querySelectorAll(sel);
-const show = id => document.getElementById(id).style.display = 'flex';
-const hide = id => document.getElementById(id).style.display = 'none';
-
-async function create(tbl, data) {
-  return fetch(`${API}/supa/create/${tbl}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data)
-  });
-}
-
-async function update(tbl, id, data) {
-  return fetch(`${API}/supa/patch/${tbl}?id=eq.${id}`, {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data)
-  });
-}
-
-async function remove(tbl, id) {
-  return fetch(`${API}/supa/delete/${tbl}?id=eq.${id}`, {
-    method: 'DELETE'
-  });
-}
-
-function openModal(id) {
-  document.getElementById(id).classList.add('open');
-  
-  // Populate selects
-  populatePropSelect('serv-propiedad-sel');
-  populatePropSelect('extra-prop');
-  populatePropSelect('mant-prop');
-  populatePropSelect('gasto-prop');
-  
-  // Empleados
-  const empSel = $('#serv-empleado');
-  if (empSel) {
-    empSel.innerHTML = '<option value="">Sin asignar</option>' + S.empleados.filter(e => e.activo).map(e => `<option value="${e.id}">${e.nombre}</option>`).join('');
-  }
-  
-  // Defaults
-  const hoy = new Date().toISOString().split('T')[0];
-  ['serv-fecha-input', 'extra-fecha', 'mant-fecha', 'gasto-fecha'].forEach(id => {
-    const el = $('#' + id);
-    if (el && !el.value) el.value = hoy;
-  });
-  
-  // Clear edit ID
-  if (id === 'modal-servicio' && !$('#serv-edit-id').value) {
-    $('#serv-edit-id').value = '';
+  try {
+    renders[view]?.();
+  } catch (e) {
+    console.error(e);
   }
 }
 
-function closeModal(id) {
-  document.getElementById(id).classList.remove('open');
-  if (id === 'modal-servicio') {
-    $('#serv-edit-id').value = '';
-  }
-}
-
-function populatePropSelect(id) {
-  const sel = $('#' + id);
-  if (!sel) return;
-  sel.innerHTML = '<option value="">Selecciona...</option>' + S.propiedades.map(p => `<option value="${p.propiedad_nombre}">${p.propiedad_nombre}</option>`).join('');
-}
-
+// -----------------------------------------------
+// Filtros / Selects
+// -----------------------------------------------
 function initFilters() {
-  const propFilter = $('#serv-propiedad');
-  if (propFilter) {
-    propFilter.innerHTML = '<option value="">Todas las propiedades</option>' + S.propiedades.map(p => `<option value="${p.propiedad_nombre}">${p.propiedad_nombre}</option>`).join('');
+  // Select de propietarios (global)
+  const propSel = document.getElementById('filter-propietario');
+  if (propSel) {
+    propSel.innerHTML = '<option value="">Todos</option>' +
+      (S.propietarios || []).map(p => `<option value="${p.id}">${p.nombre}</option>`).join('');
   }
-  
-  const months = [];
-  const now = new Date();
-  for (let i = -6; i <= 3; i++) {
-    const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
-    months.push({
-      value: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`,
-      label: d.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })
-    });
-  }
-  const current = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-  
-  ['extras-mes', 'gastos-mes'].forEach(id => {
-    const el = $('#' + id);
-    if (el) {
-      el.innerHTML = months.map(m => `<option value="${m.value}" ${m.value === current ? 'selected' : ''}>${m.label}</option>`).join('');
-    }
-  });
-  
-  const servFecha = $('#serv-fecha');
-  if (servFecha && !servFecha.value) {
-    servFecha.value = now.toISOString().split('T')[0];
+
+  // Select de empleados en formularios de servicios
+  const empSel = document.getElementById('serv-empleado-select');
+  if (empSel) {
+    empSel.innerHTML =
+      '<option value="">Sin asignar</option>' +
+      (S.empleados || []).filter(e => e.activo).map(e =>
+        `<option value="${e.id}">${e.nombre}</option>`
+      ).join('');
   }
 }
 
-function toast(msg, type = 'success') {
-  const el = $('#toast');
-  $('#toast-msg').textContent = msg;
-  $('#toast-icon').textContent = type === 'error' ? '✕' : '✓';
-  el.className = `toast show ${type}`;
-  setTimeout(() => el.classList.remove('show'), 3000);
+// -----------------------------------------------
+// Init App
+// -----------------------------------------------
+async function initApp() {
+  // Derivar clienteEmail
+  S.clienteEmail =
+    window.CM_CLIENTE_EMAIL ||
+    localStorage.getItem('cm_cliente_email') ||
+    '';
+
+  if (!S.clienteEmail) {
+    console.warn('Sin cliente email');
+    return;
+  }
+
+  localStorage.setItem('cm_cliente_email', S.clienteEmail);
+
+  try {
+    await loadAll();
+    initFilters();
+    navigate('dashboard');
+  } catch (e) {
+    console.error(e);
+    toast('Error cargando datos', 'error');
+  }
 }
 
-function formatDate(d) {
-  if (!d) return '-';
-  return new Date(d).toLocaleDateString('es-ES', { day: '2-digit', month: 'short' });
-}
-
-function formatMoney(n) {
-  if (n === null || n === undefined || isNaN(n)) return '0 €';
-  return n.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
-}
-
-function estadoBadge(e) {
-  const map = { pendiente: 'badge-warning', confirmado: 'badge-accent', en_proceso: 'badge-warning', completado: 'badge-success', cancelado: 'badge-danger' };
-  return map[e] || 'badge-neutral';
-}
-
-function empty(icon, text) {
-  return `<div class="empty-state" style="grid-column:1/-1;"><div class="empty-state-icon">${icon}</div><h3>${text}</h3></div>`;
-}
-
-// Exportar funciones globales
 window.initApp = initApp;
 window.navigate = navigate;
 window.loadAll = loadAll;
+window.load = load;
 window.create = create;
 window.update = update;
+window.patch = patch;
 window.remove = remove;
+
+window.S = S;
+window.TBL = TBL;
+window.currentConsumosMes = currentConsumosMes;
+window.currentLimpiezasMes = currentLimpiezasMes;
+window.getMonthKey = getMonthKey;
+window.toast = toast;
+window.formatMoney = formatMoney;
+window.formatDate = formatDate;
