@@ -1,0 +1,1778 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <title>CleanManager Pro</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --font: 'DM Sans', -apple-system, sans-serif;
+      --bg: #0f0f14;
+      --bg-sidebar: #16161e;
+      --bg-card: #1c1c26;
+      --bg-card-hover: #24242f;
+      --bg-input: #13131a;
+      --border: #2a2a3a;
+      --border-light: #3a3a4a;
+      --text: #f4f4f5;
+      --text-secondary: #a1a1aa;
+      --text-muted: #71717a;
+      --accent: #6366f1;
+      --accent-hover: #818cf8;
+      --accent-bg: rgba(99, 102, 241, 0.12);
+      --accent-border: rgba(99, 102, 241, 0.3);
+      --success: #10b981;
+      --success-bg: rgba(16, 185, 129, 0.12);
+      --warning: #f59e0b;
+      --warning-bg: rgba(245, 158, 11, 0.12);
+      --danger: #ef4444;
+      --danger-bg: rgba(239, 68, 68, 0.12);
+      --sidebar-w: 260px;
+      --radius: 12px;
+      --radius-sm: 8px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { font-family: var(--font); background: var(--bg); color: var(--text); height: 100%; overflow: hidden; }
+
+    .app { display: flex; height: 100vh; }
+    .sidebar { width: var(--sidebar-w); background: var(--bg-sidebar); border-right: 1px solid var(--border); display: flex; flex-direction: column; flex-shrink: 0; overflow-y: auto; }
+    .sidebar-header { padding: 20px; border-bottom: 1px solid var(--border); }
+    .logo { display: flex; align-items: center; gap: 12px; font-weight: 800; font-size: 1.2rem; }
+    .logo-icon { width: 38px; height: 38px; background: linear-gradient(135deg, var(--accent) 0%, #a855f7 100%); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; }
+    .account-badge { margin-top: 12px; padding: 8px 12px; background: var(--bg-card); border-radius: var(--radius-sm); font-size: 0.75rem; color: var(--text-secondary); word-break: break-all; }
+    .sidebar-nav { flex: 1; padding: 12px 10px; }
+    .nav-section { padding: 14px 12px 6px; font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1.2px; color: var(--text-muted); }
+    .nav-item { display: flex; align-items: center; gap: 12px; padding: 11px 14px; border-radius: var(--radius-sm); color: var(--text-secondary); cursor: pointer; transition: all 0.15s; font-weight: 500; font-size: 0.9rem; margin-bottom: 2px; }
+    .nav-item:hover { background: var(--bg-card); color: var(--text); }
+    .nav-item.active { background: var(--accent-bg); color: var(--accent); border: 1px solid var(--accent-border); }
+    .nav-icon { font-size: 1.1rem; width: 24px; text-align: center; }
+    .nav-badge { margin-left: auto; background: var(--danger); color: white; font-size: 0.65rem; padding: 2px 6px; border-radius: 10px; font-weight: 700; }
+    .sidebar-footer { padding: 16px; border-top: 1px solid var(--border); }
+    .user-menu { display: flex; align-items: center; gap: 12px; padding: 12px; background: var(--bg-card); border-radius: var(--radius-sm); cursor: pointer; }
+    .user-menu:hover { background: var(--bg-card-hover); }
+    .user-avatar { width: 36px; height: 36px; background: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.85rem; }
+    .user-info { flex: 1; min-width: 0; }
+    .user-name { font-weight: 600; font-size: 0.9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .user-role { font-size: 0.75rem; color: var(--text-muted); }
+
+    .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+    .topbar { padding: 14px 28px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; background: var(--bg-sidebar); flex-wrap: wrap; gap: 12px; }
+    .page-title { font-size: 1.4rem; font-weight: 700; }
+    .content { flex: 1; overflow-y: auto; padding: 28px; }
+
+    .view { display: none; animation: fadeIn 0.2s ease; }
+    .view.active { display: block; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 14px; margin-bottom: 24px; }
+    .stat-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; }
+    .stat-card.accent { background: linear-gradient(135deg, var(--accent) 0%, #a855f7 100%); border: none; }
+    .stat-label { font-size: 0.72rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+    .stat-card.accent .stat-label { color: rgba(255,255,255,0.8); }
+    .stat-value { font-size: 1.7rem; font-weight: 800; line-height: 1; }
+    .stat-card.accent .stat-value { color: white; }
+
+    .card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 22px; margin-bottom: 18px; }
+    .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; flex-wrap: wrap; gap: 12px; }
+    .card-title { font-size: 1.05rem; font-weight: 700; }
+
+    .btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 18px; border-radius: var(--radius-sm); font-weight: 600; font-size: 0.88rem; cursor: pointer; transition: all 0.15s; border: 1px solid transparent; font-family: var(--font); }
+    .btn-primary { background: var(--accent); color: white; }
+    .btn-primary:hover { background: var(--accent-hover); }
+    .btn-secondary { background: var(--bg-card); color: var(--text); border-color: var(--border); }
+    .btn-secondary:hover { background: var(--bg-card-hover); }
+    .btn-success { background: var(--success); color: white; }
+    .btn-danger { background: var(--danger-bg); color: var(--danger); border-color: rgba(239, 68, 68, 0.3); }
+    .btn-sm { padding: 6px 12px; font-size: 0.8rem; }
+    .btn-icon { width: 32px; height: 32px; padding: 0; justify-content: center; }
+
+    .form-group { margin-bottom: 16px; }
+    .form-label { display: block; font-size: 0.85rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 8px; }
+    .form-input { width: 100%; padding: 12px 14px; background: var(--bg-input); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text); font-size: 0.95rem; font-family: var(--font); transition: all 0.15s; }
+    .form-input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-bg); }
+    .form-input::placeholder { color: var(--text-muted); }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 12px; }
+
+    .table-container { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius); }
+    table { width: 100%; border-collapse: collapse; min-width: 600px; }
+    th, td { padding: 12px 14px; text-align: left; border-bottom: 1px solid var(--border); }
+    th { background: var(--bg-sidebar); font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); position: sticky; top: 0; }
+    td { font-size: 0.88rem; }
+    tr:hover td { background: var(--bg-card); }
+    tr:last-child td { border-bottom: none; }
+
+    .badge { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 20px; font-size: 0.7rem; font-weight: 600; white-space: nowrap; }
+    .badge-success { background: var(--success-bg); color: var(--success); }
+    .badge-warning { background: var(--warning-bg); color: var(--warning); }
+    .badge-danger { background: var(--danger-bg); color: var(--danger); }
+    .badge-neutral { background: var(--bg-input); color: var(--text-secondary); border: 1px solid var(--border); }
+    .badge-accent { background: var(--accent-bg); color: var(--accent); }
+
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(4px); display: none; align-items: center; justify-content: center; z-index: 1000; padding: 20px; }
+    .modal-overlay.open { display: flex; }
+    .modal { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); width: 100%; max-width: 560px; max-height: 90vh; overflow-y: auto; }
+    .modal-header { padding: 18px 22px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; background: var(--bg-card); z-index: 10; }
+    .modal-title { font-size: 1.05rem; font-weight: 700; }
+    .modal-close { width: 32px; height: 32px; border-radius: 50%; background: var(--bg-input); border: none; color: var(--text-secondary); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; }
+    .modal-close:hover { background: var(--danger-bg); color: var(--danger); }
+    .modal-body { padding: 22px; }
+    .modal-footer { padding: 16px 22px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 10px; position: sticky; bottom: 0; background: var(--bg-card); }
+
+    .toast { position: fixed; bottom: 24px; right: 24px; background: var(--bg-card); border: 1px solid var(--border); padding: 14px 20px; border-radius: var(--radius-sm); display: flex; align-items: center; gap: 12px; transform: translateY(100px); opacity: 0; transition: all 0.3s; z-index: 2000; box-shadow: 0 10px 40px rgba(0,0,0,0.3); }
+    .toast.show { transform: translateY(0); opacity: 1; }
+    .toast.success { border-color: var(--success); }
+    .toast.error { border-color: var(--danger); }
+
+    .grid-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; }
+    .item-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; cursor: pointer; transition: all 0.2s; }
+    .item-card:hover { border-color: var(--accent-border); transform: translateY(-2px); }
+    .item-card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; gap: 10px; }
+    .item-card-title { font-weight: 700; font-size: 0.95rem; }
+    .item-card-meta { font-size: 0.8rem; color: var(--text-muted); margin-top: 4px; }
+
+    /* Stock Cards - Visual mejorado */
+    .stock-grid-new { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
+    .stock-card-new { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; cursor: pointer; transition: all 0.2s; }
+    .stock-card-new:hover { transform: translateY(-3px); border-color: var(--primary); }
+    .stock-card-new.critical { border: 2px solid var(--danger); background: rgba(239, 68, 68, 0.05); }
+    .stock-card-new.warning { border: 2px solid var(--warning); background: rgba(245, 158, 11, 0.05); }
+    .stock-card-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
+    .stock-item-title { font-size: 1.1rem; font-weight: 700; color: var(--text); }
+    .stock-badges { display: flex; gap: 5px; flex-wrap: wrap; }
+    .stock-badge { font-size: 0.7rem; padding: 2px 8px; border-radius: 10px; font-weight: 600; }
+    .stock-badge.min { background: var(--bg-input); color: var(--text-muted); }
+    .stock-badge.price { background: rgba(59, 130, 246, 0.1); color: var(--primary); }
+    .stock-badge.prop { background: rgba(245, 158, 11, 0.15); color: #b45309; }
+    .stock-badge.gest { background: rgba(59, 130, 246, 0.1); color: var(--primary); }
+    .stock-forecast { padding: 10px 12px; border-radius: 8px; font-size: 0.8rem; font-weight: 600; text-align: center; margin-bottom: 12px; display: flex; align-items: center; justify-content: center; gap: 6px; }
+    .stock-forecast.ok { background: var(--success-bg); color: var(--success); }
+    .stock-forecast.low { background: rgba(245, 158, 11, 0.15); color: #b45309; }
+    .stock-forecast.critical { background: var(--danger-bg); color: var(--danger); }
+    .stock-stat { text-align: center; margin: 15px 0; }
+    .stock-val { font-size: 2.5rem; font-weight: 900; line-height: 1; }
+    .stock-val.ok { color: var(--success); }
+    .stock-val.low { color: var(--warning); }
+    .stock-val.critical { color: var(--danger); }
+    .stock-label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); font-weight: 700; margin-top: 5px; }
+    .stock-actions-new { display: flex; gap: 6px; justify-content: center; margin-top: 12px; }
+    .stock-btn-new { background: var(--bg-input); border: 1px solid var(--border); color: var(--text-secondary); padding: 8px 14px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 0.9rem; transition: all 0.1s; }
+    .stock-btn-new:hover { background: var(--bg-card-hover); border-color: var(--primary); color: var(--primary); }
+    .stock-btn-new.neg:hover { border-color: var(--danger); color: var(--danger); }
+    
+    /* Stats boxes mejorados */
+    .stock-stats-bar { display: flex; gap: 15px; margin-bottom: 25px; flex-wrap: wrap; }
+    .stock-stat-box { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 15px 20px; display: flex; align-items: center; gap: 12px; min-width: 140px; }
+    .stock-stat-box.danger { border-color: var(--danger); background: rgba(239, 68, 68, 0.05); }
+    .stock-stat-box.warning { border-color: var(--warning); background: rgba(245, 158, 11, 0.05); }
+    .stock-stat-icon { font-size: 1.5rem; }
+    .stock-stat-num { font-size: 1.5rem; font-weight: 800; }
+    .stock-stat-label { font-size: 0.75rem; color: var(--text-muted); }
+    
+    /* Form section divider */
+    .form-section-title { font-size: 0.8rem; color: var(--text-muted); margin: 20px 0 12px; padding-top: 16px; border-top: 1px solid var(--border); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; gap: 8px; }
+    .form-grid-4 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    @media (min-width: 600px) { .form-grid-4 { grid-template-columns: 1fr 1fr 1fr 1fr; } }
+
+    .empty-state { text-align: center; padding: 50px 20px; color: var(--text-muted); }
+    .empty-state-icon { font-size: 3rem; margin-bottom: 14px; opacity: 0.5; }
+    .empty-state h3 { color: var(--text); margin-bottom: 8px; font-size: 1.1rem; }
+
+    .login-container { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: var(--bg); padding: 20px; }
+    .login-box { width: 100%; max-width: 400px; background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 36px; }
+    .login-logo { text-align: center; margin-bottom: 28px; }
+    .login-logo .logo-icon { width: 60px; height: 60px; font-size: 1.6rem; margin: 0 auto 14px; }
+    .login-logo h1 { font-size: 1.4rem; font-weight: 800; }
+    .login-logo p { color: var(--text-muted); font-size: 0.88rem; margin-top: 4px; }
+    .login-tabs { display: flex; gap: 4px; background: var(--bg-input); padding: 4px; border-radius: var(--radius-sm); margin-bottom: 22px; }
+    .login-tab { flex: 1; padding: 10px; text-align: center; border-radius: 6px; font-weight: 600; font-size: 0.88rem; cursor: pointer; color: var(--text-muted); transition: all 0.15s; border: none; background: none; font-family: var(--font); }
+    .login-tab.active { background: var(--accent); color: white; }
+    .login-error { color: var(--danger); text-align: center; margin-top: 14px; font-size: 0.85rem; display: none; padding: 10px; background: var(--danger-bg); border-radius: var(--radius-sm); }
+
+    .loader { width: 24px; height: 24px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 1s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-overlay { position: fixed; inset: 0; background: var(--bg); display: flex; align-items: center; justify-content: center; z-index: 9999; flex-direction: column; gap: 16px; }
+
+    @media (max-width: 900px) {
+      .sidebar { position: fixed; left: -280px; top: 0; bottom: 0; z-index: 100; transition: left 0.3s; }
+      .sidebar.open { left: 0; }
+      .mobile-toggle { display: flex !important; }
+      .form-row { grid-template-columns: 1fr; }
+      .content { padding: 16px; }
+    }
+    .mobile-toggle { display: none; width: 40px; height: 40px; align-items: center; justify-content: center; background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-sm); cursor: pointer; font-size: 1.2rem; }
+    .mobile-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 99; }
+    .mobile-overlay.open { display: block; }
+
+    .filters-bar { display: flex; gap: 12px; margin-bottom: 18px; flex-wrap: wrap; align-items: center; }
+    .filters-bar select, .filters-bar input { padding: 10px 14px; background: var(--bg-input); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text); font-size: 0.88rem; font-family: var(--font); }
+
+    /* Integration Cards */
+    .integration-card { background: var(--bg-input); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; text-align: center; cursor: pointer; transition: all 0.2s; }
+    .integration-card:hover { border-color: var(--accent-border); transform: translateY(-3px); box-shadow: 0 8px 20px rgba(0,0,0,0.2); }
+    .integration-card.connected { border-color: var(--success); background: var(--success-bg); }
+    .integration-icon { width: 56px; height: 56px; margin: 0 auto 12px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 1.1rem; color: white; }
+    .integration-name { font-weight: 700; font-size: 1rem; margin-bottom: 6px; }
+    .integration-status { font-size: 0.75rem; color: var(--text-muted); }
+    .integration-card.connected .integration-status { color: var(--success); }
+    .integration-badge { display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: 0.7rem; font-weight: 700; }
+    .integration-badge.active { background: var(--success-bg); color: var(--success); }
+    .integration-badge.inactive { background: var(--danger-bg); color: var(--danger); }
+    .integration-badge.syncing { background: var(--warning-bg); color: var(--warning); }
+
+    /* Servicios específicos */
+    .servicio-row { display: flex; align-items: center; gap: 12px; }
+    .servicio-prop { font-weight: 700; }
+    .servicio-time { font-size: 0.8rem; color: var(--text-muted); }
+    .servicio-actions { display: flex; gap: 6px; }
+
+    /* Forecast badges */
+    .forecast-badge { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; }
+    .forecast-badge.ok { background: var(--success-bg); color: var(--success); }
+    .forecast-badge.warning { background: var(--warning-bg); color: var(--warning); }
+    .forecast-badge.danger { background: var(--danger-bg); color: var(--danger); }
+    
+    /* Stock props badge */
+    .stock-badge.props { background: rgba(168, 85, 247, 0.15); color: #a855f7; }
+    
+    /* Consumos desglose */
+    .consumo-item { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border); }
+    .consumo-item:last-child { border-bottom: none; }
+    .consumo-nombre { font-weight: 500; }
+    .consumo-valor { font-weight: 700; color: var(--accent); }
+    .consumo-pagador { font-size: 0.75rem; padding: 2px 8px; border-radius: 10px; margin-left: 8px; }
+    .consumo-pagador.gestor { background: var(--accent-bg); color: var(--accent); }
+    .consumo-pagador.propietario { background: var(--warning-bg); color: var(--warning); }
+    
+    /* Informe preview */
+    .informe-section { margin-bottom: 20px; }
+    .informe-section h4 { color: var(--accent); margin-bottom: 10px; }
+    
+    /* Alert config cards */
+    .alert-config-card { background: var(--bg-input); padding: 18px; border-radius: var(--radius); }
+    .alert-test-btn { margin-top: 12px; }
+    .alert-status { padding: 10px; border-radius: var(--radius-sm); margin-top: 10px; font-size: 0.85rem; }
+    .alert-status.success { background: var(--success-bg); color: var(--success); }
+    .alert-status.error { background: var(--danger-bg); color: var(--danger); }
+    
+    /* WhatsApp preview */
+    .whatsapp-preview { background: #075e54; color: white; padding: 15px; border-radius: var(--radius); font-family: monospace; font-size: 0.85rem; white-space: pre-wrap; margin-top: 10px; }
+  </style>
+</head>
+<body>
+
+<!-- LOADING -->
+<div id="loading-overlay" class="loading-overlay">
+  <div class="loader" style="width:44px; height:44px;"></div>
+  <span style="color:var(--text-muted);">Cargando...</span>
+</div>
+
+<!-- LOGIN VIEW -->
+<div id="login-view" class="login-container" style="display:none;">
+  <div class="login-box">
+    <div class="login-logo">
+      <div class="logo-icon">🏠</div>
+      <h1>CleanManager Pro</h1>
+      <p>Gestión Integral de Limpiezas</p>
+    </div>
+    <div class="login-tabs">
+      <button class="login-tab active" onclick="switchAuthTab('login')">Entrar</button>
+      <button class="login-tab" onclick="switchAuthTab('register')">Registrarse</button>
+    </div>
+    
+    <!-- Login Form -->
+    <div id="form-login">
+      <div class="form-group">
+        <label class="form-label">Email</label>
+        <input type="email" id="login-email" class="form-input" placeholder="tu@email.com">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Contraseña</label>
+        <input type="password" id="login-password" class="form-input" placeholder="••••••••">
+      </div>
+      <button class="btn btn-primary" style="width:100%;" onclick="doLogin()">
+        Iniciar Sesión
+      </button>
+    </div>
+    
+    <!-- Register Form -->
+    <div id="form-register" style="display:none;">
+      <div class="form-group">
+        <label class="form-label">Nombre de tu Empresa</label>
+        <input type="text" id="reg-empresa" class="form-input" placeholder="Limpiezas Costa Sur">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Tu Nombre</label>
+        <input type="text" id="reg-nombre" class="form-input" placeholder="María García">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Email</label>
+        <input type="email" id="reg-email" class="form-input" placeholder="tu@email.com">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Teléfono</label>
+        <input type="tel" id="reg-telefono" class="form-input" placeholder="612345678">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Contraseña (mín. 6 caracteres)</label>
+        <input type="password" id="reg-password" class="form-input" placeholder="••••••••">
+      </div>
+      <button class="btn btn-primary" style="width:100%;" onclick="doRegister()">
+        Crear Cuenta
+      </button>
+    </div>
+    
+    <div id="auth-error" class="login-error"></div>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="app-view" class="app" style="display:none;">
+  <div class="mobile-overlay" id="mobile-overlay" onclick="toggleSidebar()"></div>
+  
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <div class="logo">
+        <div class="logo-icon">🏠</div>
+        <span>CleanManager</span>
+      </div>
+      <div class="account-badge" id="account-name">Mi Empresa</div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section">Principal</div>
+      <div class="nav-item active" data-view="dashboard" onclick="navigate('dashboard')">
+        <span class="nav-icon">📊</span> Dashboard
+      </div>
+      <div class="nav-item" data-view="servicios" onclick="navigate('servicios')">
+        <span class="nav-icon">📅</span> Servicios
+        <span class="nav-badge" id="servicios-badge" style="display:none;">0</span>
+      </div>
+      <div class="nav-item" data-view="reservas" onclick="navigate('reservas')">
+        <span class="nav-icon">🛏️</span> Reservas
+      </div>
+
+      <div class="nav-section">Inventario</div>
+      <div class="nav-item" data-view="stock" onclick="navigate('stock')">
+        <span class="nav-icon">📦</span> Stock
+        <span class="nav-badge" id="stock-alert-badge" style="display:none;">0</span>
+      </div>
+      <div class="nav-item" data-view="kits" onclick="navigate('kits')">
+        <span class="nav-icon">🎁</span> Kits
+      </div>
+
+      <div class="nav-section">Gestión</div>
+      <div class="nav-item" data-view="propiedades" onclick="navigate('propiedades')">
+        <span class="nav-icon">🏠</span> Propiedades
+      </div>
+      <div class="nav-item" data-view="propietarios" onclick="navigate('propietarios')">
+        <span class="nav-icon">👤</span> Propietarios
+      </div>
+      <div class="nav-item" data-view="empleados" onclick="navigate('empleados')">
+        <span class="nav-icon">👥</span> Empleados
+      </div>
+
+      <div class="nav-section">Finanzas</div>
+      <div class="nav-item" data-view="limpiezas" onclick="navigate('limpiezas')">
+        <span class="nav-icon">🧹</span> Limpiezas
+      </div>
+      <div class="nav-item" data-view="consumos" onclick="navigate('consumos')">
+        <span class="nav-icon">💰</span> Consumos
+      </div>
+      <div class="nav-item" data-view="extras" onclick="navigate('extras')">
+        <span class="nav-icon">➕</span> Extras
+      </div>
+      <div class="nav-item" data-view="mantenimiento" onclick="navigate('mantenimiento')">
+        <span class="nav-icon">🔧</span> Mantenimiento
+      </div>
+      <div class="nav-item" data-view="gastos" onclick="navigate('gastos')">
+        <span class="nav-icon">📋</span> Gastos Fijos
+      </div>
+      <div class="nav-item" data-view="informes" onclick="navigate('informes')">
+        <span class="nav-icon">📄</span> Informes
+      </div>
+      <div class="nav-item" data-view="planificador" onclick="navigate('planificador')">
+        <span class="nav-icon">📅</span> Planificador
+      </div>
+
+      <div class="nav-section">Sistema</div>
+      <div class="nav-item" data-view="integraciones" onclick="navigate('integraciones')">
+        <span class="nav-icon">🔗</span> Integraciones
+      </div>
+      <div class="nav-item" data-view="alertas" onclick="navigate('alertas')">
+        <span class="nav-icon">🔔</span> Alertas
+      </div>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="user-menu" onclick="logout()">
+        <div class="user-avatar" id="user-avatar">CM</div>
+        <div class="user-info">
+          <div class="user-name" id="user-name">Usuario</div>
+          <div class="user-role">Cerrar sesión ⏻</div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+    <header class="topbar">
+      <div style="display:flex; align-items:center; gap:14px;">
+        <button class="mobile-toggle" onclick="toggleSidebar()">☰</button>
+        <h1 class="page-title" id="page-title">Dashboard</h1>
+      </div>
+      <div id="topbar-actions"></div>
+    </header>
+
+    <div class="content">
+      
+      <!-- DASHBOARD -->
+      <div id="view-dashboard" class="view active">
+        <div class="stats-grid">
+          <div class="stat-card accent">
+            <div class="stat-label">Servicios Hoy</div>
+            <div class="stat-value" id="stat-hoy">0</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Pendientes</div>
+            <div class="stat-value" id="stat-pendientes">0</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Propiedades</div>
+            <div class="stat-value" id="stat-props">0</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Stock Bajo</div>
+            <div class="stat-value" id="stat-stock-bajo" style="color:var(--danger);">0</div>
+          </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(320px, 1fr)); gap:18px;">
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">📅 Próximos Servicios</h3>
+              <button class="btn btn-sm btn-secondary" onclick="navigate('servicios')">Ver todos</button>
+            </div>
+            <div id="dash-servicios"></div>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">⚠️ Alertas</h3>
+            </div>
+            <div id="dash-alertas"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SERVICIOS -->
+      <div id="view-servicios" class="view">
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">📅 Servicios de Limpieza</h3>
+            <button class="btn btn-primary" onclick="newServicio()">+ Nuevo Servicio</button>
+          </div>
+          <div class="filters-bar">
+            <input type="date" id="serv-fecha" onchange="renderServicios()">
+            <select id="serv-estado" onchange="renderServicios()">
+              <option value="">Todos los estados</option>
+              <option value="pendiente">🟡 Pendiente</option>
+              <option value="confirmado">🔵 Confirmado</option>
+              <option value="en_proceso">🟠 En proceso</option>
+              <option value="completado">🟢 Completado</option>
+              <option value="cancelado">🔴 Cancelado</option>
+            </select>
+            <select id="serv-propiedad" onchange="renderServicios()">
+              <option value="">Todas las propiedades</option>
+            </select>
+          </div>
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Fecha</th>
+                  <th>Hora</th>
+                  <th>Propiedad</th>
+                  <th>Tipo</th>
+                  <th>Huésped</th>
+                  <th>Asignado</th>
+                  <th>Estado</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="servicios-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- RESERVAS -->
+      <div id="view-reservas" class="view">
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">🛏️ Reservas</h3>
+            <div style="display:flex; gap:8px;">
+              <button class="btn btn-secondary" onclick="syncAllReservas()">🔄 Sincronizar</button>
+            </div>
+          </div>
+          <div class="filters-bar">
+            <input type="date" id="res-desde" onchange="renderReservas()">
+            <input type="date" id="res-hasta" onchange="renderReservas()">
+            <select id="res-origen" onchange="renderReservas()">
+              <option value="">Todos los orígenes</option>
+              <option value="avaibook">Avaibook</option>
+              <option value="icnea">Icnea</option>
+              <option value="hostify">Hostify</option>
+              <option value="manual">Manual</option>
+            </select>
+            <select id="res-status" onchange="renderReservas()">
+              <option value="">Todos los estados</option>
+              <option value="confirmed">✅ Confirmada</option>
+              <option value="pending">⏳ Pendiente</option>
+              <option value="cancelled">❌ Cancelada</option>
+            </select>
+          </div>
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Check-in</th>
+                  <th>Check-out</th>
+                  <th>Propiedad</th>
+                  <th>Huésped</th>
+                  <th>Huéspedes</th>
+                  <th>Canal</th>
+                  <th>Estado</th>
+                  <th>Precio</th>
+                </tr>
+              </thead>
+              <tbody id="reservas-tbody"></tbody>
+            </table>
+            <div id="reservas-empty" class="empty-state" style="display:none;">
+              <span style="font-size:2rem;">🛏️</span>
+              <p>No hay reservas. Conecta un PMS en Integraciones.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- STOCK -->
+      <div id="view-stock" class="view">
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">📦 Inventario</h3>
+            <button class="btn btn-primary" onclick="openStockModal()">+ Nuevo Artículo</button>
+          </div>
+          <div class="stock-stats-bar" id="stock-stats-bar">
+            <div class="stock-stat-box danger">
+              <span class="stock-stat-icon">🚨</span>
+              <div><div class="stock-stat-num" id="stat-bajo-min">0</div><div class="stock-stat-label">Bajo mínimo</div></div>
+            </div>
+            <div class="stock-stat-box warning">
+              <span class="stock-stat-icon">⚠️</span>
+              <div><div class="stock-stat-num" id="stat-agotaran">0</div><div class="stock-stat-label">Se agotarán</div></div>
+            </div>
+            <div class="stock-stat-box">
+              <span class="stock-stat-icon">✅</span>
+              <div><div class="stock-stat-num" id="stat-ok">0</div><div class="stock-stat-label">OK</div></div>
+            </div>
+            <div class="stock-stat-box">
+              <span class="stock-stat-icon">📅</span>
+              <div><div class="stock-stat-num" id="stat-reservas-futuras">0</div><div class="stock-stat-label">Reservas futuras</div></div>
+            </div>
+          </div>
+          <div id="stock-grid" class="stock-grid-new"></div>
+        </div>
+      </div>
+
+      <!-- KITS -->
+      <div id="view-kits" class="view">
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">🎁 Kits de Productos</h3>
+            <button class="btn btn-primary" onclick="newKit()">+ Nuevo Kit</button>
+          </div>
+          <p style="padding:0 16px; color:var(--text-muted); font-size:0.85rem; margin-bottom:16px;">
+            Los kits definen qué productos se consumen automáticamente con cada servicio de limpieza.
+          </p>
+          <div id="kits-grid" class="grid-cards"></div>
+        </div>
+      </div>
+
+      <!-- PROPIEDADES -->
+      <div id="view-propiedades" class="view">
+        <!-- Tabs -->
+        <div style="display:flex; gap:8px; margin-bottom:16px;">
+          <button class="btn" id="tab-props-list" onclick="switchPropTab('list')" style="background:var(--primary); color:white;">📋 Listado</button>
+          <button class="btn btn-secondary" id="tab-props-times" onclick="switchPropTab('times')">⏱️ Tiempos de Limpieza</button>
+        </div>
+        
+        <!-- Tab: Listado -->
+        <div id="props-tab-list" class="card">
+          <div class="card-header">
+            <h3 class="card-title">🏠 Propiedades</h3>
+            <button class="btn btn-primary" onclick="newPropiedad()">+ Nueva Propiedad</button>
+          </div>
+          <div class="filters-bar" style="padding:12px 16px; border-bottom:1px solid var(--border);">
+            <input type="text" id="props-search" class="form-input" placeholder="🔍 Buscar..." style="max-width:250px;" oninput="renderPropiedades()">
+            <select id="props-filter-source" class="form-input" style="max-width:180px;" onchange="renderPropiedades()">
+              <option value="">Todas las fuentes</option>
+              <option value="manual">📝 Manuales</option>
+              <option value="integration">🔗 Integración</option>
+            </select>
+          </div>
+          <div id="propiedades-grid" class="grid-cards" style="padding:16px;"></div>
+        </div>
+        
+        <!-- Tab: Tiempos de Limpieza -->
+        <div id="props-tab-times" class="card" style="display:none;">
+          <div class="card-header">
+            <h3 class="card-title">⏱️ Tiempos por Tipología</h3>
+            <div style="display:flex; gap:8px;">
+              <button class="btn btn-secondary" onclick="propTiempos.resetChanges()">↩️ Descartar</button>
+              <button class="btn btn-primary" id="btn-save-times" onclick="propTiempos.saveAll()">💾 Guardar Todo</button>
+            </div>
+          </div>
+          <div style="padding:16px;">
+            <p style="color:var(--text-muted); margin-bottom:16px;">Define tiempos estándar por combinación de habitaciones + baños, o ajusta individualmente.</p>
+            
+            <!-- Tipologías -->
+            <div style="margin-bottom:24px;">
+              <h4 style="margin-bottom:12px; font-size:1rem;">🏠 Tipologías (Habitaciones + Baños)</h4>
+              <div id="tipologias-grid" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(200px, 1fr)); gap:12px;"></div>
+            </div>
+            
+            <!-- Lista individual -->
+            <div>
+              <h4 style="margin-bottom:12px; font-size:1rem;">📋 Propiedades Individuales</h4>
+              <div class="filters-bar" style="margin-bottom:12px;">
+                <input type="text" id="times-search" class="form-input" placeholder="🔍 Buscar..." style="max-width:200px;" oninput="propTiempos.filter()">
+                <select id="times-filter-tipo" class="form-input" style="max-width:200px;" onchange="propTiempos.filter()">
+                  <option value="">Todas las tipologías</option>
+                </select>
+              </div>
+              <div style="display:grid; grid-template-columns:1fr 100px 100px 80px 80px; gap:8px; padding:8px 12px; font-size:0.8rem; font-weight:600; color:var(--text-muted); text-transform:uppercase;">
+                <span>Propiedad</span>
+                <span style="text-align:center;">Hab.</span>
+                <span style="text-align:center;">Baños</span>
+                <span style="text-align:center;">Tiempo</span>
+                <span style="text-align:center;">Estado</span>
+              </div>
+              <div id="times-list" style="max-height:400px; overflow-y:auto;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PROPIETARIOS -->
+      <div id="view-propietarios" class="view">
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">👤 Propietarios</h3>
+            <button class="btn btn-primary" onclick="openModal('modal-propietario')">+ Nuevo Propietario</button>
+          </div>
+          <div id="propietarios-grid" class="grid-cards"></div>
+        </div>
+      </div>
+
+      <!-- EMPLEADOS -->
+      <div id="view-empleados" class="view">
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">👥 Equipo</h3>
+            <button class="btn btn-primary" onclick="newEmpleado()">+ Nuevo Empleado</button>
+          </div>
+          <div id="empleados-grid" class="grid-cards"></div>
+        </div>
+      </div>
+
+      <!-- EXTRAS -->
+      <div id="view-extras" class="view">
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">🧹 Extras de Limpieza</h3>
+            <button class="btn btn-primary" onclick="openModal('modal-extra')">+ Nuevo Extra</button>
+          </div>
+          <div class="filters-bar">
+            <select id="extras-mes" onchange="renderExtras()"></select>
+          </div>
+          <div class="table-container">
+            <table>
+              <thead><tr><th>Fecha</th><th>Propiedad</th><th>Concepto</th><th>Importe</th><th></th></tr></thead>
+              <tbody id="extras-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- MANTENIMIENTO -->
+      <div id="view-mantenimiento" class="view">
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">🔧 Mantenimiento</h3>
+            <button class="btn btn-primary" onclick="openModal('modal-mantenimiento')">+ Nueva Incidencia</button>
+          </div>
+          <div class="filters-bar">
+            <select id="mant-estado" onchange="renderMantenimiento()">
+              <option value="">Todos</option>
+              <option value="pendiente">🟡 Pendientes</option>
+              <option value="resuelto">🟢 Resueltos</option>
+            </select>
+          </div>
+          <div id="mantenimiento-grid" class="grid-cards"></div>
+        </div>
+      </div>
+
+      <!-- GASTOS -->
+      <div id="view-gastos" class="view">
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">📋 Gastos Fijos</h3>
+            <button class="btn btn-primary" onclick="openModal('modal-gasto')">+ Nuevo Gasto</button>
+          </div>
+          <div class="filters-bar">
+            <select id="gastos-mes" onchange="renderGastos()"></select>
+            <select id="gastos-tipo" onchange="renderGastos()">
+              <option value="">Todos</option>
+              <option value="luz">💡 Luz</option>
+              <option value="agua">💧 Agua</option>
+              <option value="gas">🔥 Gas</option>
+              <option value="comunidad">🏢 Comunidad</option>
+              <option value="internet">📶 Internet</option>
+              <option value="otro">📎 Otro</option>
+            </select>
+          </div>
+          <div class="table-container">
+            <table>
+              <thead><tr><th>Fecha</th><th>Propiedad</th><th>Tipo</th><th>Concepto</th><th>Importe</th><th>Paga</th><th></th></tr></thead>
+              <tbody id="gastos-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ALERTAS -->
+      <div id="view-alertas" class="view">
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-label">🚨 Artículos bajo mínimo</div>
+            <div class="stat-value" id="alert-bajo-min">0</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">⚠️ Se agotarán pronto</div>
+            <div class="stat-value" id="alert-agotaran">0</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">✅ Stock OK</div>
+            <div class="stat-value" id="alert-ok">0</div>
+          </div>
+        </div>
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(320px, 1fr)); gap:18px;">
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">📱 WhatsApp Alertas</h3>
+              <button class="btn btn-primary" onclick="saveAlertConfig()">💾 Guardar</button>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Número WhatsApp</label>
+              <input type="tel" id="alert-whatsapp" class="form-input" placeholder="34612345678">
+              <small style="color:var(--text-muted);">Formato: código país + número (sin +)</small>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Email (opcional)</label>
+              <input type="email" id="alert-email" class="form-input">
+            </div>
+            <div style="margin-top:16px;">
+              <h4 style="margin-bottom:10px;">⚙️ Tipos de alerta</h4>
+              <label style="display:flex; align-items:center; gap:10px; margin-bottom:10px; cursor:pointer;">
+                <input type="checkbox" id="alert-stock" checked> ⚠️ Stock bajo mínimo
+              </label>
+              <label style="display:flex; align-items:center; gap:10px; margin-bottom:10px; cursor:pointer;">
+                <input type="checkbox" id="alert-rotura"> 🚨 Predicción de rotura stock
+              </label>
+              <div class="form-group" style="margin-left:26px;">
+                <label class="form-label">Días de antelación</label>
+                <input type="number" id="alert-dias-rotura" class="form-input" value="7" min="1" max="30" style="max-width:100px;">
+              </div>
+              <label style="display:flex; align-items:center; gap:10px; cursor:pointer;">
+                <input type="checkbox" id="alert-semanal"> 📅 Resumen semanal
+              </label>
+            </div>
+            <div style="margin-top:16px; display:flex; gap:10px;">
+              <button class="btn btn-secondary" onclick="testWhatsApp()">🧪 Probar WhatsApp</button>
+              <button class="btn btn-success" onclick="sendAlertaNow()">📤 Enviar alerta ahora</button>
+            </div>
+            <div id="whatsapp-status"></div>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">👁️ Vista previa del mensaje</h3>
+            </div>
+            <div class="whatsapp-preview" id="alert-preview">⚠️ *ALERTA DE STOCK*
+
+Cargando estado del inventario...</div>
+            <div style="margin-top:16px;">
+              <h4 style="margin-bottom:10px;">📊 Estado actual</h4>
+              <div id="alertas-estado-actual"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- LIMPIEZAS MENSUALES -->
+      <div id="view-limpiezas" class="view">
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">🧹 Limpiezas del Mes</h3>
+            <div style="display:flex; gap:10px; align-items:center;">
+              <button type="button" class="btn btn-secondary btn-sm" onclick="return changeMonth(-1)">◀ Anterior</button>
+              <span id="limpiezas-mes-label" style="font-weight:600; min-width:120px; text-align:center;">Diciembre 2024</span>
+              <button type="button" class="btn btn-secondary btn-sm" onclick="return changeMonth(1)">Siguiente ▶</button>
+            </div>
+          </div>
+          <div class="filters-bar">
+            <select id="limpiezas-propietario" class="form-input" style="max-width:200px;" onchange="renderLimpiezasMes()">
+              <option value="">Todos los propietarios</option>
+            </select>
+          </div>
+          <div class="stats-grid" style="margin-top:16px;">
+            <div class="stat-card">
+              <div class="stat-label">Total Limpiezas</div>
+              <div class="stat-value" id="limp-total">0</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">Coste Gestor</div>
+              <div class="stat-value" id="limp-gestor" style="color:var(--accent);">0€</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">Coste Propietario</div>
+              <div class="stat-value" id="limp-propietario" style="color:var(--warning);">0€</div>
+            </div>
+            <div class="stat-card accent">
+              <div class="stat-label">Total</div>
+              <div class="stat-value" id="limp-total-cost">0€</div>
+            </div>
+          </div>
+          <div class="table-container" style="margin-top:16px;">
+            <table>
+              <thead>
+                <tr>
+                  <th>Fecha</th>
+                  <th>Propiedad</th>
+                  <th>Tipo</th>
+                  <th>Precio Base</th>
+                  <th>Extras</th>
+                  <th>Total</th>
+                  <th>Paga</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="limpiezas-table"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- CONSUMOS -->
+      <div id="view-consumos" class="view">
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">💰 Consumos del Mes</h3>
+            <div style="display:flex; gap:10px; align-items:center;">
+              <button type="button" class="btn btn-secondary btn-sm" onclick="consumosPrev()">◀ Anterior</button>
+              <span id="consumos-mes-label" style="font-weight:600; min-width:150px; text-align:center;">Diciembre 2024</span>
+              <button type="button" class="btn btn-secondary btn-sm" onclick="consumosNext()">Siguiente ▶</button>
+            </div>
+          </div>
+          <div class="stats-grid">
+            <div class="stat-card accent">
+              <div class="stat-label">Gasto Total</div>
+              <div class="stat-value" id="consumo-total">0€</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">Reservas Atendidas</div>
+              <div class="stat-value" id="consumo-reservas">0</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">Paga Gestor</div>
+              <div class="stat-value" id="consumo-gestor" style="color:var(--accent);">0€</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">Paga Propietario</div>
+              <div class="stat-value" id="consumo-propietario" style="color:var(--warning);">0€</div>
+            </div>
+          </div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:18px; margin-top:18px;">
+            <div class="card" style="margin:0;">
+              <h4 style="margin-bottom:14px;">📊 Tendencia 6 meses</h4>
+              <canvas id="consumos-chart" height="200"></canvas>
+            </div>
+            <div class="card" style="margin:0;">
+              <h4 style="margin-bottom:14px;">📋 Desglose por artículo</h4>
+              <div id="consumos-desglose" style="max-height:280px; overflow-y:auto;"></div>
+            </div>
+          </div>
+          <div class="card" style="margin-top:18px;">
+            <h4 style="margin-bottom:14px;">🔮 Proyección resto del mes</h4>
+            <div id="consumos-proyeccion"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- INFORMES -->
+      <div id="view-informes" class="view">
+        <div class="stats-grid">
+          <div class="stat-card" style="cursor:pointer;" onclick="exportPDFMensual()">
+            <div class="stat-label">📄 PDF Mensual</div>
+            <div class="stat-value" style="font-size:2rem;">📊</div>
+          </div>
+          <div class="stat-card" style="cursor:pointer;" onclick="exportExcelCompleto()">
+            <div class="stat-label">📗 Excel Completo</div>
+            <div class="stat-value" style="font-size:2rem;">📑</div>
+          </div>
+          <div class="stat-card" style="cursor:pointer;" onclick="openInformePropietario()">
+            <div class="stat-label">👤 Informe Propietario</div>
+            <div class="stat-value" style="font-size:2rem;">📋</div>
+          </div>
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:18px;">
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">📄 Generar Informe PDF</h3>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Mes</label>
+              <input type="month" id="informe-mes" class="form-input">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Tipo de informe</label>
+              <select id="informe-tipo" class="form-input">
+                <option value="mensual">📊 Resumen Mensual</option>
+                <option value="propietario">👤 Por Propietario</option>
+                <option value="consumos">💰 Consumos Detallado</option>
+                <option value="limpiezas">🧹 Limpiezas Detallado</option>
+              </select>
+            </div>
+            <div class="form-group" id="informe-propietario-select" style="display:none;">
+              <label class="form-label">Propietario</label>
+              <select id="informe-propietario" class="form-input"></select>
+            </div>
+            <button class="btn btn-primary" onclick="generarInformePDF()" style="width:100%;">📄 Generar PDF</button>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">📗 Exportar Excel</h3>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Mes</label>
+              <input type="month" id="excel-mes" class="form-input">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Contenido</label>
+              <select id="excel-tipo" class="form-input">
+                <option value="completo">📑 Todo (Inventario + Gastos + Limpiezas)</option>
+                <option value="inventario">📦 Solo Inventario</option>
+                <option value="gastos">💰 Solo Gastos/Consumos</option>
+                <option value="limpiezas">🧹 Solo Limpiezas</option>
+                <option value="propietarios">👤 Resumen Propietarios</option>
+              </select>
+            </div>
+            <button class="btn btn-success" onclick="exportarExcel()" style="width:100%;">📗 Descargar Excel</button>
+          </div>
+        </div>
+        <div class="card" style="margin-top:18px;">
+          <div class="card-header">
+            <h3 class="card-title">👁️ Vista previa</h3>
+          </div>
+          <div id="informe-preview" style="background:var(--bg-input); padding:20px; border-radius:var(--radius); min-height:200px; font-family:monospace; font-size:0.85rem; white-space:pre-wrap;">
+Selecciona un tipo de informe y haz clic en generar para ver la vista previa.
+          </div>
+        </div>
+      </div>
+
+      <!-- INTEGRACIONES -->
+      <div id="view-integraciones" class="view">
+        <div class="stats-grid">
+          <div class="stat-card accent">
+            <div class="stat-label">Integraciones Activas</div>
+            <div class="stat-value" id="stat-integraciones">0</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Propiedades Importadas</div>
+            <div class="stat-value" id="stat-props-importadas">0</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Última Sincronización</div>
+            <div class="stat-value" id="stat-last-sync" style="font-size:1rem;">-</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">🔗 Conectar Plataforma</h3>
+          </div>
+          <div class="integration-platforms" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:14px;">
+            <div class="integration-card" onclick="openIntegrationModal('avaibook')">
+              <div class="integration-icon" style="background:linear-gradient(135deg, #667eea, #764ba2);">AB</div>
+              <div class="integration-name">Avaibook</div>
+              <div class="integration-status" id="status-avaibook">No conectado</div>
+            </div>
+            <div class="integration-card" onclick="openIntegrationModal('icnea')">
+              <div class="integration-icon" style="background:linear-gradient(135deg, #11998e, #38ef7d);">IC</div>
+              <div class="integration-name">Icnea</div>
+              <div class="integration-status" id="status-icnea">No conectado</div>
+            </div>
+            <div class="integration-card" onclick="openIntegrationModal('hostify')">
+              <div class="integration-icon" style="background:linear-gradient(135deg, #ee0979, #ff6a00);">HF</div>
+              <div class="integration-name">Hostify</div>
+              <div class="integration-status" id="status-hostify">No conectado</div>
+            </div>
+            <div class="integration-card" onclick="openIntegrationModal('guesty')">
+              <div class="integration-icon" style="background:linear-gradient(135deg, #4facfe, #00f2fe);">GY</div>
+              <div class="integration-name">Guesty</div>
+              <div class="integration-status" id="status-guesty">No conectado</div>
+            </div>
+            <div class="integration-card" onclick="openIntegrationModal('smoobu')">
+              <div class="integration-icon" style="background:linear-gradient(135deg, #fa709a, #fee140);">SM</div>
+              <div class="integration-name">Smoobu</div>
+              <div class="integration-status" id="status-smoobu">No conectado</div>
+            </div>
+            <div class="integration-card" onclick="openIntegrationModal('lodgify')">
+              <div class="integration-icon" style="background:linear-gradient(135deg, #a8edea, #fed6e3);">LG</div>
+              <div class="integration-name">Lodgify</div>
+              <div class="integration-status" id="status-lodgify">No conectado</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">📋 Integraciones Activas</h3>
+          </div>
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Plataforma</th>
+                  <th>Estado</th>
+                  <th>Propiedades</th>
+                  <th>Última Sync</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="integraciones-tbody"></tbody>
+            </table>
+          </div>
+          <div id="integraciones-empty" class="empty-state" style="display:none;">
+            <span style="font-size:3rem;">🔗</span>
+            <p>No hay integraciones activas</p>
+            <p style="font-size:0.85rem; color:var(--text-muted);">Conecta tu PMS para importar propiedades y reservas automáticamente</p>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">🏠 Propiedades Importadas</h3>
+            <button class="btn btn-secondary" onclick="syncAllProperties()">🔄 Sincronizar Todas</button>
+          </div>
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Propiedad</th>
+                  <th>Origen</th>
+                  <th>ID Externo</th>
+                  <th>Habitaciones</th>
+                  <th>Camas</th>
+                  <th>Precio Limpieza</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="props-importadas-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- PLANIFICADOR -->
+      <div id="view-planificador" class="view">
+        <div class="view-header">
+          <h1 class="view-title">📅 Planificador Pro</h1>
+        </div>
+        <div id="planner-container"></div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<!-- MODALES -->
+
+<!-- Modal Servicio -->
+<div id="modal-servicio" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 class="modal-title">📅 Nuevo Servicio</h3>
+      <button class="modal-close" onclick="closeModal('modal-servicio')">×</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="serv-edit-id">
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Propiedad *</label>
+          <select id="serv-propiedad-sel" class="form-input"></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Tipo de Servicio</label>
+          <select id="serv-tipo" class="form-input">
+            <option value="checkout">🚪 Check-out</option>
+            <option value="checkin">🔑 Check-in</option>
+            <option value="refresh">✨ Refresh</option>
+            <option value="profunda">🧽 Profunda</option>
+            <option value="mantenimiento">🔧 Mantenimiento</option>
+            <option value="otro">📋 Otro</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Fecha del Servicio *</label>
+          <input type="date" id="serv-fecha-input" class="form-input">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Hora Inicio</label>
+          <input type="time" id="serv-hora" class="form-input" value="11:00">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Duración (min)</label>
+          <input type="number" id="serv-duracion" class="form-input" value="" placeholder="Auto" min="15" step="15">
+          <small style="color:var(--text-muted); font-size:0.75rem;">Vacío = usar tiempo de la propiedad</small>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Check-in Huésped</label>
+          <input type="date" id="serv-checkin" class="form-input">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Check-out Huésped</label>
+          <input type="date" id="serv-checkout" class="form-input">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Nombre Huésped</label>
+          <input type="text" id="serv-huesped" class="form-input" placeholder="Nombre del huésped">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Nº Huéspedes</label>
+          <input type="number" id="serv-num-huespedes" class="form-input" value="2">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Asignar a</label>
+          <select id="serv-empleado" class="form-input"></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Precio (€)</label>
+          <input type="number" id="serv-precio" class="form-input" step="0.01">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Estado</label>
+          <select id="serv-estado-sel" class="form-input">
+            <option value="pendiente">🟡 Pendiente</option>
+            <option value="confirmado">🔵 Confirmado</option>
+            <option value="en_proceso">🟠 En proceso</option>
+            <option value="completado">🟢 Completado</option>
+            <option value="cancelado">🔴 Cancelado</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Prioridad</label>
+          <select id="serv-prioridad" class="form-input">
+            <option value="normal">Normal</option>
+            <option value="alta">⚡ Alta</option>
+            <option value="urgente">🚨 Urgente</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Notas</label>
+        <textarea id="serv-notas" class="form-input" rows="2" placeholder="Instrucciones especiales..."></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-servicio')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveServicio()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Stock -->
+<div id="modal-stock" class="modal-overlay">
+  <div class="modal" style="max-width: 480px;">
+    <div class="modal-header">
+      <h3 class="modal-title" id="stock-modal-title">📦 Nuevo Artículo</h3>
+      <button class="modal-close" onclick="closeModal('modal-stock')">×</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="stock-edit-id">
+      <div class="form-group">
+        <label class="form-label">Nombre del Artículo *</label>
+        <input type="text" id="stock-item" class="form-input" placeholder="Ej: Toalla de Baño">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Stock Actual</label>
+          <input type="number" id="stock-qty" class="form-input" value="0">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Stock Mínimo (alerta)</label>
+          <input type="number" id="stock-min" class="form-input" value="10">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">💶 Precio por Unidad (€)</label>
+          <input type="number" id="stock-precio" class="form-input" value="0" step="0.01" placeholder="0.00">
+        </div>
+        <div class="form-group">
+          <label class="form-label">💳 ¿Quién paga?</label>
+          <select id="stock-pagador" class="form-input">
+            <option value="gestor">🏢 Gestor</option>
+            <option value="propietario">👤 Propietario</option>
+          </select>
+        </div>
+      </div>
+      
+      <div class="form-section-title">📐 CONSUMO POR LIMPIEZA</div>
+      <div class="form-group">
+        <label class="form-label">🧹 Fijo por limpieza (amenities, agua, etc)</label>
+        <input type="number" id="stock-c-limp" class="form-input" value="0">
+      </div>
+      <div class="form-grid-4">
+        <div class="form-group"><label class="form-label">🚪 x Habitación</label><input type="number" id="stock-c-hab" class="form-input" value="0"></div>
+        <div class="form-group"><label class="form-label">🚿 x Baño</label><input type="number" id="stock-c-bano" class="form-input" value="0"></div>
+        <div class="form-group"><label class="form-label">🛏️ x Cama Doble</label><input type="number" id="stock-c-cama-doble" class="form-input" value="0"></div>
+        <div class="form-group"><label class="form-label">🛏️ x Cama Individual</label><input type="number" id="stock-c-cama-indiv" class="form-input" value="0"></div>
+      </div>
+      <div class="form-grid-4">
+        <div class="form-group"><label class="form-label">🧑 x Adulto</label><input type="number" id="stock-c-adulto" class="form-input" value="0"></div>
+        <div class="form-group"><label class="form-label">👦 x Niño</label><input type="number" id="stock-c-nino" class="form-input" value="0"></div>
+        <div class="form-group"><label class="form-label">👶 x Bebé</label><input type="number" id="stock-c-bebe" class="form-input" value="0"></div>
+        <div class="form-group"><label class="form-label">👤 x Huésped (total)</label><input type="number" id="stock-c-huesp" class="form-input" value="0"></div>
+      </div>
+      
+      <div class="form-section-title">🏠 APLICAR A PROPIEDADES</div>
+      <div class="form-group">
+        <label class="form-label">¿En qué propiedades se usa este artículo?</label>
+        <div id="stock-propiedades-list" style="max-height:150px; overflow-y:auto; background:var(--bg-input); border-radius:var(--radius-sm); padding:12px;">
+          <label style="display:flex; align-items:center; gap:8px; margin-bottom:8px; cursor:pointer;">
+            <input type="checkbox" id="stock-todas-props" onchange="toggleAllStockProps(this.checked)" checked>
+            <strong>✅ Todas las propiedades</strong>
+          </label>
+          <div id="stock-props-checkboxes"></div>
+        </div>
+        <small style="color:var(--text-muted);">Desmarca "Todas" para seleccionar propiedades específicas (ej: vino solo en Villa Premium)</small>
+      </div>
+    </div>
+    <div class="modal-footer" style="justify-content: space-between;">
+      <button class="btn btn-danger" id="stock-btn-delete" onclick="deleteStock()" style="display:none;">🗑️ Eliminar</button>
+      <div style="display:flex; gap:10px;">
+        <button class="btn btn-secondary" onclick="closeModal('modal-stock')">Cancelar</button>
+        <button class="btn btn-primary" onclick="saveStock()">💾 Guardar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Propiedad -->
+<div id="modal-propiedad" class="modal-overlay">
+  <div class="modal" style="max-width:550px;">
+    <div class="modal-header">
+      <h3 class="modal-title" id="prop-modal-title">🏠 Nueva Propiedad</h3>
+      <button class="modal-close" onclick="closeModal('modal-propiedad')">×</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="prop-edit-id">
+      <input type="hidden" id="prop-source">
+      
+      <div class="form-group">
+        <label class="form-label">Nombre *</label>
+        <input type="text" id="prop-nombre" class="form-input" placeholder="Apartamento Centro">
+      </div>
+      
+      <div class="form-group">
+        <label class="form-label">Dirección</label>
+        <input type="text" id="prop-direccion" class="form-input" placeholder="Calle Mayor 15, 3B">
+      </div>
+      
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Habitaciones</label>
+          <input type="number" id="prop-habitaciones" class="form-input" value="1" min="0" step="1">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Baños</label>
+          <input type="number" id="prop-banos" class="form-input" value="1" min="0" step="1">
+        </div>
+      </div>
+      
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Precio Limpieza (€)</label>
+          <input type="number" id="prop-precio" class="form-input" value="45" step="0.01">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Tiempo Limpieza (min)</label>
+          <input type="number" id="prop-tiempo" class="form-input" value="90" step="15" min="15">
+        </div>
+      </div>
+      
+      <div class="form-group">
+        <label class="form-label">Propietario</label>
+        <select id="prop-propietario" class="form-input">
+          <option value="">Sin asignar</option>
+        </select>
+      </div>
+      
+      <div class="form-group">
+        <label class="form-label">Notas</label>
+        <textarea id="prop-notas" class="form-input" rows="2" placeholder="Notas internas..."></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-propiedad')">Cancelar</button>
+      <button class="btn btn-primary" onclick="savePropiedad()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Propietario -->
+<div id="modal-propietario" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 class="modal-title">👤 Nuevo Propietario</h3>
+      <button class="modal-close" onclick="closeModal('modal-propietario')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Nombre *</label>
+        <input type="text" id="propiet-nombre" class="form-input">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Email</label>
+          <input type="email" id="propiet-email" class="form-input">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Teléfono</label>
+          <input type="tel" id="propiet-telefono" class="form-input">
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-propietario')">Cancelar</button>
+      <button class="btn btn-primary" onclick="savePropietario()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Empleado -->
+<div id="modal-empleado" class="modal-overlay">
+  <div class="modal" style="max-width: 500px;">
+    <div class="modal-header">
+      <h3 class="modal-title">👥 Nuevo Empleado</h3>
+      <button class="modal-close" onclick="closeModal('modal-empleado')">×</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="emp-edit-id">
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Nombre *</label>
+          <input type="text" id="emp-nombre" class="form-input">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Email</label>
+          <input type="email" id="emp-email" class="form-input">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Teléfono</label>
+          <input type="tel" id="emp-telefono" class="form-input">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Rol</label>
+          <select id="emp-rol" class="form-input">
+            <option value="limpiador">Limpiador</option>
+            <option value="supervisor">Supervisor</option>
+            <option value="admin">Admin</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Tipo Contrato</label>
+          <select id="emp-tipo" class="form-input">
+            <option value="Externo">Externo</option>
+            <option value="Fijo">Fijo</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Rating ★</label>
+          <select id="emp-rating" class="form-input">
+            <option value="5">★★★★★ (5)</option>
+            <option value="4">★★★★☆ (4)</option>
+            <option value="3" selected>★★★☆☆ (3)</option>
+            <option value="2">★★☆☆☆ (2)</option>
+            <option value="1">★☆☆☆☆ (1)</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Horas Máx/Semana</label>
+          <input type="number" id="emp-horas" class="form-input" value="40" min="1" max="60">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Precio/Hora (€)</label>
+          <input type="number" id="emp-precio" class="form-input" value="15" min="0" step="0.5">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Días Libres (recurrentes)</label>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 5px;">
+          <label style="display:flex; align-items:center; gap:4px; cursor:pointer;"><input type="checkbox" id="emp-dia-0" value="0"> Dom</label>
+          <label style="display:flex; align-items:center; gap:4px; cursor:pointer;"><input type="checkbox" id="emp-dia-1" value="1"> Lun</label>
+          <label style="display:flex; align-items:center; gap:4px; cursor:pointer;"><input type="checkbox" id="emp-dia-2" value="2"> Mar</label>
+          <label style="display:flex; align-items:center; gap:4px; cursor:pointer;"><input type="checkbox" id="emp-dia-3" value="3"> Mié</label>
+          <label style="display:flex; align-items:center; gap:4px; cursor:pointer;"><input type="checkbox" id="emp-dia-4" value="4"> Jue</label>
+          <label style="display:flex; align-items:center; gap:4px; cursor:pointer;"><input type="checkbox" id="emp-dia-5" value="5"> Vie</label>
+          <label style="display:flex; align-items:center; gap:4px; cursor:pointer;"><input type="checkbox" id="emp-dia-6" value="6"> Sáb</label>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-empleado')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveEmpleado()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Kit -->
+<div id="modal-kit" class="modal-overlay">
+  <div class="modal" style="max-width: 600px;">
+    <div class="modal-header">
+      <h3 class="modal-title" id="kit-modal-title">🎁 Nuevo Kit</h3>
+      <button class="modal-close" onclick="closeModal('modal-kit')">×</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="kit-edit-id">
+      
+      <div class="form-row">
+        <div class="form-group" style="flex:2;">
+          <label class="form-label">Nombre del Kit *</label>
+          <input type="text" id="kit-nombre" class="form-input" placeholder="Ej: Kit Bienvenida, Kit Limpieza Básica">
+        </div>
+        <div class="form-group" style="flex:1;">
+          <label class="form-label">Se consume por</label>
+          <select id="kit-consumo-tipo" class="form-input">
+            <option value="servicio">🧹 Cada Servicio</option>
+            <option value="checkout">🔴 Solo Checkout</option>
+            <option value="checkin">🟢 Solo Check-in</option>
+            <option value="manual">✋ Manual</option>
+          </select>
+        </div>
+      </div>
+      
+      <div class="form-group">
+        <label class="form-label">Descripción</label>
+        <input type="text" id="kit-desc" class="form-input" placeholder="Descripción opcional del kit">
+      </div>
+      
+      <div class="form-group">
+        <label class="form-label">Propiedades donde se usa</label>
+        <select id="kit-propiedades-tipo" class="form-input" onchange="toggleKitPropiedades()">
+          <option value="todas">✅ Todas las propiedades</option>
+          <option value="especificas">📍 Propiedades específicas</option>
+        </select>
+        <div id="kit-propiedades-lista" style="display:none; margin-top:10px; max-height:120px; overflow-y:auto; background:var(--bg-input); border-radius:var(--radius-sm); padding:12px;">
+          <!-- Se llena dinámicamente -->
+        </div>
+      </div>
+      
+      <div class="form-group">
+        <label class="form-label">Productos incluidos</label>
+        <div id="kit-productos-lista" style="max-height:200px; overflow-y:auto; background:var(--bg-input); border-radius:var(--radius-sm); padding:12px;">
+          <p style="color:var(--text-muted); font-size:0.85rem;">Cargando productos...</p>
+        </div>
+        <small style="color:var(--text-muted);">Indica la cantidad de cada producto que se consume por kit</small>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-kit')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveKit()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Extra -->
+<div id="modal-extra" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 class="modal-title">🧹 Nuevo Extra</h3>
+      <button class="modal-close" onclick="closeModal('modal-extra')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Fecha *</label>
+          <input type="date" id="extra-fecha" class="form-input">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Propiedad *</label>
+          <select id="extra-prop" class="form-input"></select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Concepto *</label>
+        <input type="text" id="extra-concepto" class="form-input">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Importe (€) *</label>
+        <input type="number" id="extra-importe" class="form-input" step="0.01">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-extra')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveExtra()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Mantenimiento -->
+<div id="modal-mantenimiento" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 class="modal-title">🔧 Nueva Incidencia</h3>
+      <button class="modal-close" onclick="closeModal('modal-mantenimiento')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Fecha</label>
+          <input type="date" id="mant-fecha" class="form-input">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Propiedad *</label>
+          <select id="mant-prop" class="form-input"></select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Título *</label>
+        <input type="text" id="mant-titulo" class="form-input">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Descripción</label>
+        <textarea id="mant-desc" class="form-input" rows="2"></textarea>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Importe (€)</label>
+          <input type="number" id="mant-importe" class="form-input" step="0.01" value="0">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Estado</label>
+          <select id="mant-estado-sel" class="form-input">
+            <option value="pendiente">Pendiente</option>
+            <option value="resuelto">Resuelto</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-mantenimiento')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveMantenimiento()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Gasto -->
+<div id="modal-gasto" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 class="modal-title">📋 Nuevo Gasto Fijo</h3>
+      <button class="modal-close" onclick="closeModal('modal-gasto')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Fecha *</label>
+          <input type="date" id="gasto-fecha" class="form-input">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Propiedad *</label>
+          <select id="gasto-prop" class="form-input"></select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Tipo *</label>
+          <select id="gasto-tipo" class="form-input">
+            <option value="luz">💡 Luz</option>
+            <option value="agua">💧 Agua</option>
+            <option value="gas">🔥 Gas</option>
+            <option value="comunidad">🏢 Comunidad</option>
+            <option value="internet">📶 Internet</option>
+            <option value="otro">📎 Otro</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Importe (€) *</label>
+          <input type="number" id="gasto-importe" class="form-input" step="0.01">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Concepto</label>
+        <input type="text" id="gasto-concepto" class="form-input">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-gasto')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveGasto()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Integración -->
+<div id="modal-integracion" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 class="modal-title" id="integ-modal-title">🔗 Conectar Plataforma</h3>
+      <button class="modal-close" onclick="closeModal('modal-integracion')">×</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="integ-plataforma">
+      <input type="hidden" id="integ-edit-id">
+      
+      <div id="integ-info" style="background:var(--accent-bg); padding:14px; border-radius:var(--radius-sm); margin-bottom:18px; font-size:0.85rem;">
+        <strong>ℹ️ Información</strong>
+        <p id="integ-help-text" style="margin-top:6px; color:var(--text-secondary);"></p>
+      </div>
+      
+      <div class="form-group">
+        <label class="form-label">Nombre de la cuenta *</label>
+        <input type="text" id="integ-nombre" class="form-input" placeholder="Ej: Avaibook Principal, Cuenta Canarias...">
+        <small style="color:var(--text-muted); font-size:0.75rem;">Identifica esta cuenta si tienes varias del mismo PMS</small>
+      </div>
+      
+      <!-- Avaibook / Icnea / General -->
+      <div id="integ-fields-apikey" class="form-group">
+        <label class="form-label">API Key *</label>
+        <input type="text" id="integ-apikey" class="form-input" placeholder="Tu API Key">
+      </div>
+      
+      <div id="integ-fields-userid" class="form-group" style="display:none;">
+        <label class="form-label">User ID / Owner ID</label>
+        <input type="text" id="integ-userid" class="form-input" placeholder="ID de usuario en la plataforma">
+      </div>
+      
+      <div id="integ-fields-secret" class="form-group" style="display:none;">
+        <label class="form-label">API Secret</label>
+        <input type="text" id="integ-secret" class="form-input" placeholder="Secret (si aplica)">
+      </div>
+      
+      <div class="form-group">
+        <label class="form-label">Sincronización automática</label>
+        <select id="integ-interval" class="form-input">
+          <option value="60">Cada hora</option>
+          <option value="120">Cada 2 horas</option>
+          <option value="360">Cada 6 horas</option>
+          <option value="720">Cada 12 horas</option>
+          <option value="1440">Diariamente</option>
+        </select>
+      </div>
+      
+      <label style="display:flex; align-items:center; gap:10px; margin-top:14px; cursor:pointer;">
+        <input type="checkbox" id="integ-activo" checked> Integración activa
+      </label>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-danger" id="integ-btn-delete" onclick="deleteIntegracion()" style="display:none; margin-right:auto;">Eliminar</button>
+      <button class="btn btn-secondary" onclick="closeModal('modal-integracion')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveIntegracion()">💾 Guardar y Conectar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Mapear Propiedad -->
+<div id="modal-mapear-prop" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 class="modal-title">🏠 Configurar Propiedad</h3>
+      <button class="modal-close" onclick="closeModal('modal-mapear-prop')">×</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="map-prop-id">
+      <div class="form-group">
+        <label class="form-label">Nombre interno *</label>
+        <input type="text" id="map-prop-nombre" class="form-input" placeholder="Nombre que usarás en CleanManager">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Habitaciones</label>
+          <input type="number" id="map-prop-rooms" class="form-input" value="1">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Baños</label>
+          <input type="number" id="map-prop-baths" class="form-input" value="1">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Camas Dobles</label>
+          <input type="number" id="map-prop-camas-dobles" class="form-input" value="0">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Camas Individuales</label>
+          <input type="number" id="map-prop-camas-ind" class="form-input" value="0">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Precio Limpieza (€)</label>
+          <input type="number" id="map-prop-precio" class="form-input" value="45" step="0.01">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Duración (min)</label>
+          <input type="number" id="map-prop-duracion" class="form-input" value="90">
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-mapear-prop')">Cancelar</button>
+      <button class="btn btn-primary" onclick="savePropMapping()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast" class="toast"><span id="toast-icon">✓</span><span id="toast-msg">OK</span></div>
+
+<!-- Módulos JS separados -->
+<script src="/core.js"></script>
+<script src="/renders.js"></script>
+<script src="/stock.js"></script>
+<script src="/consumos.js"></script>
+<script src="/saves.js"></script>
+<script src="/integraciones.js"></script>
+<script src="/planificador.js"></script>
+<script src="/alertas.js"></script>
+</body>
+</html>
