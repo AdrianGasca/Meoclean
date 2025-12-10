@@ -2,20 +2,30 @@
 // CONSUMOS MENSUALES - v2 (limpio)
 // ===============================================
 
+
+// Helper seguro para clave YYYY-MM (evita problemas de zona horaria/UTC)
+function monthKey(d) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
+
+
 // Navegar al mes anterior
 function consumosPrev() {
   const [year, month] = currentConsumosMes.split('-').map(Number);
-  const d = new Date(year, month - 2, 1);
-  currentConsumosMes = d.toISOString().slice(0, 7);
+  const d = new Date(year, month - 1, 1); // mes actual (0-based)
+  d.setMonth(d.getMonth() - 1);
+  currentConsumosMes = monthKey(d);
   console.log('Mes:', currentConsumosMes);
   renderConsumos();
 }
 
+
 // Navegar al mes siguiente
 function consumosNext() {
   const [year, month] = currentConsumosMes.split('-').map(Number);
-  const d = new Date(year, month, 1);
-  currentConsumosMes = d.toISOString().slice(0, 7);
+  const d = new Date(year, month - 1, 1);
+  d.setMonth(d.getMonth() + 1);
+  currentConsumosMes = monthKey(d);
   console.log('Mes:', currentConsumosMes);
   renderConsumos();
 }
@@ -188,7 +198,7 @@ function calcConsumoReserva(item, reserva) {
   consumo += (item.consumo_habitacion || 0) * habitaciones;
   consumo += (item.consumo_bano || 0) * banos;
   consumo += (item.consumo_cama_doble || 0) * camasDobles;
-  consumo += (item.consumo_cama_indiv || 0) * camasIndiv;
+  consumo += (item.consumo_cama_indiv || 0) * (camasIndiv || 0);
   consumo += (item.consumo_huesped || 0) * huespedes;
   consumo += (item.consumo_adulto || 0) * adultos;
   consumo += (item.consumo_nino || 0) * ninos;
@@ -278,7 +288,7 @@ function renderConsumosChart() {
   // Últimos 6 meses
   for (let i = 5; i >= 0; i--) {
     const d = new Date(year, month - 1 - i, 1);
-    const key = d.toISOString().slice(0, 7);
+    const key = monthKey(d);
     const label = d.toLocaleDateString('es-ES', { month: 'short' });
     meses.push(label);
     
