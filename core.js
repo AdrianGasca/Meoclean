@@ -102,13 +102,7 @@ async function loadAll() {
     } catch { return []; }
   };
   
-  // Cargar propiedades de ambas fuentes
-  const [propConfig, propIntegradas] = await Promise.all([
-    load(TBL.propiedades),
-    load('v_propiedades')  // Propiedades de integración
-  ]);
-  
-  [S.servicios, S.inventario, S.kits, S.propietarios, S.gastos, S.mantenimiento, S.extras, , S.empleados, S.reservas, S.credenciales, S.propertyMappings] = await Promise.all([
+  [S.servicios, S.inventario, S.kits, S.propietarios, S.gastos, S.mantenimiento, S.extras, S.propiedades, S.empleados, S.reservas, S.credenciales, S.propertyMappings] = await Promise.all([
     load(TBL.servicios),
     load(TBL.inventario),
     load(TBL.kits),
@@ -116,38 +110,46 @@ async function loadAll() {
     load(TBL.gastos),
     load(TBL.mantenimiento),
     load(TBL.extras),
-    Promise.resolve([]), // placeholder
+    load(TBL.propiedades),
     load(TBL.empleados, 'email_host'),
     load(TBL.reservas),
     load(TBL.credenciales),
     load(TBL.propertyMapping)
   ]);
   
-  // Combinar propiedades: config + integradas (evitando duplicados)
-  const configNames = new Set(propConfig.map(p => (p.propiedad_nombre || '').toLowerCase()));
-  const integradasNuevas = propIntegradas.filter(p => {
-    const nombre = (p.propiedad_nombre || '').toLowerCase();
-    return !configNames.has(nombre);
-  }).map(p => ({
-    ...p,
-    source: 'integration',
-    external_id: p.avaibook_accommodation_id || p.external_id,
-    habitaciones: p.total_rooms || 1,
-    banos: p.total_bathrooms || 1
-  }));
-  
-  // Marcar las de config como manuales
-  S.propiedades = [
-    ...propConfig.map(p => ({ ...p, source: 'manual' })),
-    ...integradasNuevas
-  ];
-  
   const alertas = await load(TBL.alertas);
   S.alertas = alertas[0] || null;
   
   // Alias para compatibilidad
   S.stock = S.inventario;
+  
+  // ✅ Cargar propiedades de integración y combinar (sin romper lo anterior)
+  try {
+    const propIntegradas = await load('v_propiedades');
+    if (propIntegradas && propIntegradas.length > 0) {
+      // Marcar las existentes como manuales
+      S.propiedades = S.propiedades.map(p => ({ ...p, source: 'manual' }));
+      
+      // Añadir las de integración que no existan ya
+      const existingNames = new Set(S.propiedades.map(p => (p.propiedad_nombre || '').toLowerCase()));
+      propIntegradas.forEach(p => {
+        const nombre = (p.propiedad_nombre || '').toLowerCase();
+        if (!existingNames.has(nombre)) {
+          S.propiedades.push({
+            ...p,
+            source: 'integration',
+            external_id: p.avaibook_accommodation_id || p.external_id,
+            habitaciones: p.total_rooms || 1,
+            banos: p.total_bathrooms || 1
+          });
+        }
+      });
+    }
+  } catch (e) {
+    console.log('No se pudieron cargar propiedades de integración:', e);
+  }
 }
+
 // ===== AUTH =====
 function switchAuthTab(tab) {
   $$('.login-tab').forEach(t => t.classList.remove('active'));
@@ -200,14 +202,12 @@ async function doRegister() {
   if (!email.includes('@')) return showAuthError('Email no válido');
   
   try {
-    // Check existing
     console.log('Checking if email exists...');
     const check = await fetch(`${API}/supa/list/${TBL.usuarios}?email=eq.${encodeURIComponent(email)}`);
     const checkData = await check.json();
     console.log('Check response:', checkData);
     if (checkData.length) return showAuthError('Este email ya está registrado');
     
-    // Create user
     const data = {
       email,
       password_hash: pass,
@@ -270,6 +270,7 @@ function logout() {
     location.reload();
   }
 }
+
 // ===== NAVIGATION =====
 function navigate(view) {
   $$('.nav-item').forEach(n => n.classList.remove('active'));
@@ -297,6 +298,7 @@ function closeSidebar() {
   $('#sidebar').classList.remove('open');
   $('#mobile-overlay').classList.remove('open');
 }
+
 // ===== HELPERS =====
 const $ = sel => document.querySelector(sel);
 const $$ = sel => document.querySelectorAll(sel);
@@ -312,7 +314,7 @@ async function create(tbl, data) {
 }
 
 async function update(tbl, id, data) {
-  return fetch(`${API}/supa/update/${tbl}/${id}`, {
+  return fetch(`${API}/supa/patch/${tbl}?id=eq.${id}`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data)
@@ -320,7 +322,7 @@ async function update(tbl, id, data) {
 }
 
 async function remove(tbl, id) {
-  return fetch(`${API}/supa/delete/${tbl}/${id}`, {
+  return fetch(`${API}/supa/delete/${tbl}?id=eq.${id}`, {
     method: 'DELETE'
   });
 }
@@ -355,7 +357,6 @@ function openModal(id) {
 
 function closeModal(id) {
   document.getElementById(id).classList.remove('open');
-  // Reset form
   if (id === 'modal-servicio') {
     $('#serv-edit-id').value = '';
   }
@@ -368,13 +369,11 @@ function populatePropSelect(id) {
 }
 
 function initFilters() {
-  // Propiedades filter
   const propFilter = $('#serv-propiedad');
   if (propFilter) {
     propFilter.innerHTML = '<option value="">Todas las propiedades</option>' + S.propiedades.map(p => `<option value="${p.propiedad_nombre}">${p.propiedad_nombre}</option>`).join('');
   }
   
-  // Month selectors
   const months = [];
   const now = new Date();
   for (let i = -6; i <= 3; i++) {
@@ -393,7 +392,6 @@ function initFilters() {
     }
   });
   
-  // Date filter default
   const servFecha = $('#serv-fecha');
   if (servFecha && !servFecha.value) {
     servFecha.value = now.toISOString().split('T')[0];
@@ -427,7 +425,10 @@ function empty(icon, text) {
   return `<div class="empty-state" style="grid-column:1/-1;"><div class="empty-state-icon">${icon}</div><h3>${text}</h3></div>`;
 }
 
-// Exportar funciones globales para wrapping
+// Exportar funciones globales
 window.initApp = initApp;
 window.navigate = navigate;
 window.loadAll = loadAll;
+window.create = create;
+window.update = update;
+window.remove = remove;
