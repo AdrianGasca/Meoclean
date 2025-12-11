@@ -17,7 +17,13 @@ const TBL = {
   extras: 'limpieza_extras',
   propiedades: 'propiedades_config',
   empleados: 'empleados_cleanmanager',
-  alertas: 'alertas_config'
+  alertas: 'alertas_config',
+  // Módulo de Rentabilidad
+  gastosRecurrentes: 'cm_gastos_recurrentes',
+  comisiones: 'cm_comisiones_plataforma',
+  repartoIngresos: 'cm_reparto_ingresos',
+  rentabilidadMensual: 'cm_rentabilidad_mensual',
+  gastosExtra: 'cm_gastos_extra'
 };
 
 // Información de plataformas
@@ -45,7 +51,13 @@ const S = {
   alertas: null,
   reservas: [],
   credenciales: [],
-  propertyMappings: []
+  propertyMappings: [],
+  // Rentabilidad
+  gastosRecurrentes: [],
+  comisiones: [],
+  repartoIngresos: [],
+  rentabilidadMensual: [],
+  gastosExtra: []
 };
 
 // Variables globales
@@ -102,7 +114,7 @@ async function loadAll() {
     } catch { return []; }
   };
   
-  [S.servicios, S.inventario, S.kits, S.propietarios, S.gastos, S.mantenimiento, S.extras, S.propiedades, S.empleados, S.reservas, S.credenciales, S.propertyMappings] = await Promise.all([
+  [S.servicios, S.inventario, S.kits, S.propietarios, S.gastos, S.mantenimiento, S.extras, S.propiedades, S.empleados, S.reservas, S.credenciales, S.propertyMappings, S.gastosRecurrentes, S.comisiones, S.repartoIngresos, S.rentabilidadMensual, S.gastosExtra] = await Promise.all([
     load(TBL.servicios),
     load(TBL.inventario),
     load(TBL.kits),
@@ -114,7 +126,12 @@ async function loadAll() {
     load(TBL.empleados, 'email_host'),
     load(TBL.reservas),
     load(TBL.credenciales),
-    load(TBL.propertyMapping)
+    load(TBL.propertyMapping),
+    load(TBL.gastosRecurrentes),
+    load(TBL.comisiones),
+    load(TBL.repartoIngresos),
+    load(TBL.rentabilidadMensual),
+    load(TBL.gastosExtra)
   ]);
   
   const alertas = await load(TBL.alertas);
@@ -278,7 +295,7 @@ function navigate(view) {
   $$('.view').forEach(v => v.classList.remove('active'));
   $(`#view-${view}`)?.classList.add('active');
   
-  const titles = { dashboard:'Dashboard', servicios:'Servicios', reservas:'Reservas', stock:'Inventario', kits:'Kits', propiedades:'Propiedades', propietarios:'Propietarios', empleados:'Empleados', limpiezas:'Limpiezas', consumos:'Consumos', extras:'Extras', mantenimiento:'Mantenimiento', gastos:'Gastos Fijos', informes:'Informes', alertas:'Alertas', integraciones:'Integraciones' };
+  const titles = { dashboard:'Dashboard', servicios:'Servicios', reservas:'Reservas', stock:'Inventario', kits:'Kits', propiedades:'Propiedades', propietarios:'Propietarios', empleados:'Empleados', limpiezas:'Limpiezas', consumos:'Consumos', extras:'Extras', mantenimiento:'Mantenimiento', gastos:'Gastos Fijos', informes:'Informes', alertas:'Alertas', integraciones:'Integraciones', comisiones:'Comisiones', rentabilidad:'Rentabilidad' };
   $('#page-title').textContent = titles[view] || '';
   
   renderView(view);
@@ -286,7 +303,7 @@ function navigate(view) {
 }
 
 function renderView(v) {
-  const renders = { dashboard:renderDashboard, servicios:renderServicios, reservas:renderReservas, stock:renderStock, kits:renderKits, propiedades:renderPropiedades, propietarios:renderPropietarios, empleados:renderEmpleados, limpiezas:renderLimpiezasMes, consumos:renderConsumos, extras:renderExtras, mantenimiento:renderMantenimiento, gastos:renderGastos, informes:renderInformes, alertas:renderAlertas, integraciones:renderIntegraciones, planificador:renderPlanificador };
+  const renders = { dashboard:renderDashboard, servicios:renderServicios, reservas:renderReservas, stock:renderStock, kits:renderKits, propiedades:renderPropiedades, propietarios:renderPropietarios, empleados:renderEmpleados, limpiezas:renderLimpiezasMes, consumos:renderConsumos, extras:renderExtras, mantenimiento:renderMantenimiento, gastos:renderGastos, informes:renderInformes, alertas:renderAlertas, integraciones:renderIntegraciones, planificador:renderPlanificador, comisiones:renderComisiones, rentabilidad:renderRentabilidad };
   renders[v]?.();
 }
 
